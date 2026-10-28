@@ -1,0 +1,173 @@
+name: paranod
+
+services:
+  traefik:
+    image: ${COMPOSE_PROJECT_NAME:-paranod}-traefik:3.6.7
+    build:
+      context: ./docker/traefik
+    restart: unless-stopped
+    environment:
+      # Empty enables the API negotiation supported by Traefik's Docker client.
+      # Set an explicit version only when diagnosing a daemon compatibility issue.
+      DOCKER_API_VERSION: ${DOCKER_API_VERSION:-}
+    command:
+      - '--providers.docker=true'
+      - '--providers.docker.exposedbydefault=false'
+      - '--providers.docker.constraints=Label(`paranod.instance`, `${COMPOSE_PROJECT_NAME:-paranod}`)'
+      - '--providers.file.filename=/etc/traefik/dynamic.yml'
+      - '--entrypoints.web.address=:80'
+      - '--log.level=INFO'
+    ports:
+      # Keep the same external port users expect (PARANOD on :3002),
+      # but now served by Traefik so /w/<sessionId>/ works same-origin.
+      - '${APP_BIND_IP:-0.0.0.0}:${APP_PORT:-3002}:80'
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - paranod-network
+
+  postgres:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-paranod}
+      POSTGRES_USER: ${POSTGRES_USER:-paranod}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U "$$POSTGRES_USER" -d "$$POSTGRES_DB"']
+      interval: 5s
+      timeout: 5s
+      retries: 12
+    volumes:
+      - paranod-postgres:/var/lib/postgresql/data
+    networks:
+      - paranod-network
+
+  container-runner:
+    image: ${COMPOSE_PROJECT_NAME:-paranod}-container-runner:local
+    build:
+      context: .
+      dockerfile: services/container-runner/Dockerfile
+    restart: unless-stopped
+    environment:
+      PORT: 4050
+      DOCKER_SOCKET_PATH: /var/run/docker.sock
+      # Internal-only auth token (set this in your .env for production)
+      RUNNER_TOKEN: ${WORKSPACES_RUNNER_TOKEN:?Set WORKSPACES_RUNNER_TOKEN to a random secret of at least 32 characters}
+      RUNNER_MAX_CONCURRENT_JOBS: ${RUNNER_MAX_CONCURRENT_JOBS:-4}
+      RUNNER_JOB_NETWORK: ${RUNNER_JOB_NETWORK:-bridge}
+      # The Docker network where Traefik can reach sessions
+      RUNNER_NETWORK: ${COMPOSE_PROJECT_NAME:-paranod}_paranod-network
+      RUNNER_INSTANCE: ${COMPOSE_PROJECT_NAME:-paranod}
+      # Allowlist images (comma-separated)
+      RUNNER_ALLOWED_IMAGES: ${RUNNER_ALLOWED_IMAGES:-kasmweb/chrome:1.15.0-rolling,kasmweb/tor-browser:1.15.0-rolling,soxoj/maigret:latest,sherlock/sherlock:latest,python:3.11-slim}
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - paranod-network
+
+  app:
+    image: ${COMPOSE_PROJECT_NAME:-paranod}-app:local
+    restart: unless-stopped
+    depends_on:
+      traefik:
+        condition: service_started
+      postgres:
+        condition: service_healthy
+      container-runner:
+        condition: service_started
+    build:
+      context: .
+      args:
+        NEXT_PUBLIC_ADDON_STORE_URL: ${NEXT_PUBLIC_ADDON_STORE_URL:-}
+    labels:
+      - 'traefik.enable=true'
+      - 'paranod.instance=${COMPOSE_PROJECT_NAME:-paranod}'
+      - 'traefik.docker.network=${COMPOSE_PROJECT_NAME:-paranod}_paranod-network'
+      - 'traefik.http.routers.${COMPOSE_PROJECT_NAME:-paranod}-app.rule=PathPrefix(`/`)'
+      - 'traefik.http.routers.${COMPOSE_PROJECT_NAME:-paranod}-app.entrypoints=web'
+      - 'traefik.http.routers.${COMPOSE_PROJECT_NAME:-paranod}-app.priority=1'
+      - 'traefik.http.services.${COMPOSE_PROJECT_NAME:-paranod}-app.loadbalancer.server.port=3000'
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - "fetch('http://127.0.0.1:3000/api/health', { redirect: 'error', signal: AbortSignal.timeout(4000) }).then(r => process.exit(r.status === 200 ? 0 : 1)).catch(() => process.exit(1))"
+      interval: 10s
+      timeout: 5s
+      start_period: 120s
+      retries: 3
+    environment: &app-environment
+      NODE_ENV: production
+
+      # Opt-in on both web and worker. Start the worker with --profile agent.
+      PARANOD_AGENT_WORKER_ENABLED: ${PARANOD_AGENT_WORKER_ENABLED:-false}
+      # API credentials are configured by each instance administrator in Settings.
+      # Generated on first startup and persisted in the app volume when empty.
+      SECRETS_ENCRYPTION_KEY: ${SECRETS_ENCRYPTION_KEY:-}
+
+      # Prisma / DB
+      DATABASE_URL: ${DATABASE_URL:-postgresql://${POSTGRES_USER:-paranod}:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}@postgres:5432/${POSTGRES_DB:-paranod}}
+      DIRECT_URL: ${DIRECT_URL:-postgresql://${POSTGRES_USER:-paranod}:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}@postgres:5432/${POSTGRES_DB:-paranod}}
+
+      # Self-hosted authentication. If BETTER_AUTH_SECRET is empty, the
+      # entrypoint creates one once and stores it in paranod-app-data.
+      BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET:-}
+      BETTER_AUTH_URL: ${BETTER_AUTH_URL:-http://localhost:${APP_PORT:-3002}}
+      APP_URL: ${APP_URL:-${BETTER_AUTH_URL:-http://localhost:${APP_PORT:-3002}}}
+      CRON_SECRET: ${CRON_SECRET:-}
+      MAINTENANCE_INTERVAL_MS: ${MAINTENANCE_INTERVAL_MS:-300000}
+      FLOW_HISTORY_RETENTION_DAYS: ${FLOW_HISTORY_RETENTION_DAYS:-0}
+      PARANOD_ADDON_ALLOWED_HOSTS: ${PARANOD_ADDON_ALLOWED_HOSTS:-}
+      AUTH_STATE_DIR: /var/lib/paranod
+      TEMP_FILE_STORAGE_DIR: /var/lib/paranod/files
+      TEMP_FILE_ENCRYPTION_KEY: ${TEMP_FILE_ENCRYPTION_KEY:-}
+      PARANOD_ALLOW_LOCAL_ADDONS: ${PARANOD_ALLOW_LOCAL_ADDONS:-false}
+      PARANOD_LOCAL_ADDON_HOSTS: ${PARANOD_LOCAL_ADDON_HOSTS:-}
+
+      # Logo.dev (per loghi via /api/logo)
+      LOGO_DEV_PUBLISHABLE_KEY: ${LOGO_DEV_PUBLISHABLE_KEY:-}
+
+      # Isolated workspaces (Kasm)
+      WORKSPACES_RUNNER_URL: ${WORKSPACES_RUNNER_URL:-http://container-runner:4050}
+      WORKSPACES_RUNNER_TOKEN: ${WORKSPACES_RUNNER_TOKEN:?WORKSPACES_RUNNER_TOKEN is required}
+      WORKSPACES_STREAM_MODE: ${WORKSPACES_STREAM_MODE:-traefik}
+      WORKSPACES_TRAEFIK_NETWORK: ${COMPOSE_PROJECT_NAME:-paranod}_paranod-network
+      KASM_BASIC_AUTH_USERNAME: ${KASM_BASIC_AUTH_USERNAME:-kasm_user}
+      WORKSPACES_TTL_MINUTES: ${WORKSPACES_TTL_MINUTES:-30}
+      WORKSPACES_MAX_ACTIVE_SESSIONS_PER_ORG: ${WORKSPACES_MAX_ACTIVE_SESSIONS_PER_ORG:-20}
+      WORKSPACES_MAX_ACTIVE_SESSIONS_PER_USER: ${WORKSPACES_MAX_ACTIVE_SESSIONS_PER_USER:-3}
+      KASM_SHM_SIZE_MB: ${KASM_SHM_SIZE_MB:-512}
+      KASM_MEMORY_MB: ${KASM_MEMORY_MB:-1024}
+      KASM_CPU_CORES: ${KASM_CPU_CORES:-1}
+      KASM_STREAM_PROTOCOL: ${KASM_STREAM_PROTOCOL:-https}
+      KASM_CHROME_IMAGE: ${KASM_CHROME_IMAGE:-kasmweb/chrome:1.15.0-rolling}
+      KASM_TOR_IMAGE: ${KASM_TOR_IMAGE:-kasmweb/tor-browser:1.15.0-rolling}
+    volumes:
+      - paranod-app-data:/var/lib/paranod
+    networks:
+      - paranod-network
+
+  agent-worker:
+    image: ${COMPOSE_PROJECT_NAME:-paranod}-app:local
+    profiles: ['agent']
+    restart: unless-stopped
+    depends_on:
+      app:
+        condition: service_healthy
+    command: ['./docker/agent-entrypoint.sh']
+    environment:
+      <<: *app-environment
+    volumes:
+      - paranod-app-data:/var/lib/paranod:ro
+    networks:
+      - paranod-network
+    stop_grace_period: 30s
+
+volumes:
+  paranod-postgres:
+  paranod-app-data:
+
+networks:
+  paranod-network:

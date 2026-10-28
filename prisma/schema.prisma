@@ -1,0 +1,879 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// ============================================
+// AUTHENTICATION - Better Auth (self-hosted)
+// ============================================
+
+model User {
+  id            String    @id
+  name          String
+  email         String    @unique
+  emailVerified Boolean   @default(false)
+  image         String?
+  role          String    @default("user") // "admin" | "user"
+  bootstrapKey  String?   @unique // Claimed exactly once by the first OSS admin.
+  banned        Boolean   @default(false)
+  banReason     String?
+  banExpires    DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  sessions      Session[]
+  accounts      Account[]
+
+  @@index([role])
+}
+
+model Session {
+  id             String   @id
+  expiresAt      DateTime
+  token          String   @unique
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  ipAddress      String?
+  userAgent      String?
+  impersonatedBy String?
+  userId         String
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model Account {
+  id                    String    @id
+  accountId             String
+  providerId            String
+  userId                String
+  accessToken           String?
+  refreshToken          String?
+  idToken               String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  password              String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([providerId, accountId])
+  @@index([userId])
+}
+
+model Verification {
+  id         String   @id
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([identifier])
+}
+
+// ============================================
+// WORKSPACES
+// ============================================
+
+model Workspace {
+  id          String  @id @default(cuid())
+  name        String
+  slug        String  @unique // URL-friendly name
+  description String?
+  logo        String? // URL o Base64
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  members           WorkspaceMember[]
+  graphs            Graph[]
+  flows             Flow[]
+  cases             Case[]
+  pluginSettings    WorkspacePluginSetting[]
+  agentSettings     WorkspaceAgentSetting[]
+  addons            WorkspaceAddonInstall[]
+  transformJobs     TransformJob[]
+  tempFiles         TempFile[]
+  workspaceSessions WorkspaceSession[]
+  flowRuns          FlowRun[]
+
+  @@index([slug])
+  @@map("Organization")
+}
+
+// ============================================
+// TEMP FILES - Temporary encrypted uploads (workspace-scoped)
+// ============================================
+
+model TempFile {
+  id              String @id @default(cuid())
+  workspaceId     String @map("organizationId")
+  createdByUserId String
+
+  originalName String
+  mimeType     String
+  sizeBytes    Int
+
+  // AES-256-GCM metadata (base64)
+  encIv  String
+  encTag String
+
+  // Path on disk (relative, no extension)
+  storagePath String
+
+  createdAt DateTime  @default(now())
+  expiresAt DateTime?
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId, createdAt])
+  @@index([expiresAt])
+}
+
+// ============================================
+// FLOWS - Flussi di transform (workspace-scoped)
+// ============================================
+
+model Flow {
+  id              String @id @default(cuid())
+  workspaceId     String @map("organizationId")
+  createdByUserId String
+
+  name        String
+  description String?
+
+  // Dati del flow (JSONB nativo)
+  nodes Json @default(dbgenerated("'[]'::jsonb"))
+  edges Json @default(dbgenerated("'[]'::jsonb"))
+
+  // Metadata
+  thumbnail String?
+  nodeCount Int     @default(0)
+  edgeCount Int     @default(0)
+
+  // Timestamps
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  lastOpenedAt DateTime?
+
+  // Relations
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  runs      FlowRun[]
+
+  @@index([workspaceId])
+  @@index([workspaceId, updatedAt])
+}
+
+// Esecuzioni di un flow (history + osservabilità; base per l'executor server-side)
+model FlowRun {
+  id              String @id @default(cuid())
+  workspaceId     String @map("organizationId")
+  flowId          String
+  createdByUserId String
+
+  kind   String @default("run") // 'run' (dal grafo) | 'test' (editor)
+  status String @default("RUNNING") // RUNNING | COMPLETED | FAILED
+
+  // Input di partenza
+  inputType  String
+  inputValue String
+  graphId    String?
+
+  // Risultato (steps: FlowRunStep[] serializzati, senza entities/edges completi)
+  steps       Json    @default(dbgenerated("'[]'::jsonb"))
+  entityCount Int     @default(0)
+  error       String?
+
+  startedAt   DateTime  @default(now())
+  completedAt DateTime?
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  flow      Flow      @relation(fields: [flowId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId])
+  @@index([flowId, startedAt])
+}
+
+// ============================================
+// CASE SYSTEM - Case-centric investigations
+// ============================================
+
+model Case {
+  id              String @id @default(cuid())
+  workspaceId     String @map("organizationId")
+  createdByUserId String
+
+  name        String
+  description String?
+  status      String  @default("open") // open | closed | archived
+  tags        String  @default("[]") // JSON array string
+
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  lastOpenedAt DateTime?
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  graphs    Graph[]
+  targets   CaseTarget[]
+  entities  CaseEntity[]
+  relations CaseRelation[]
+  artifacts CaseArtifact[]
+  events    CaseEvent[]
+
+  @@index([workspaceId, lastOpenedAt])
+  @@index([workspaceId, updatedAt])
+}
+
+model CaseEntity {
+  id              String @id @default(cuid())
+  caseId          String
+  type            String
+  value           String
+  normalizedValue String
+
+  label      String?
+  metadata   String  @default("{}")
+  confidence String  @default("medium") // low | medium | confirmed
+
+  firstSeenAt DateTime @default(now())
+  lastSeenAt  DateTime @default(now())
+  seenCount   Int      @default(1)
+
+  createdByUserId String
+
+  case             Case                   @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  sources          CaseEntitySource[]
+  targetLinks      CaseTargetEntityLink[]
+  relationsFrom    CaseRelation[]         @relation("CaseRelationFrom")
+  relationsTo      CaseRelation[]         @relation("CaseRelationTo")
+  CaseTarget       CaseTarget[]
+  CaseArtifactLink CaseArtifactLink[]
+
+  @@unique([caseId, type, normalizedValue])
+  @@index([caseId, type])
+}
+
+model CaseEntitySource {
+  id           String @id @default(cuid())
+  caseEntityId String
+
+  kind        String // graph_node | graph_import | trigger | workflow | manual | plugin
+  graphId     String?
+  graphNodeId String?
+  pluginId    String?
+  transformId String?
+  externalRef String?
+
+  createdAt DateTime @default(now())
+  data      String   @default("{}") // JSON snapshot metadata/evidence
+
+  caseEntity CaseEntity @relation(fields: [caseEntityId], references: [id], onDelete: Cascade)
+
+  @@index([graphId])
+}
+
+model CaseTarget {
+  id           String @id @default(cuid())
+  caseId       String
+  caseEntityId String
+
+  name       String?
+  color      String?
+  confidence String  @default("confirmed") // low | medium | confirmed
+
+  createdByUserId String
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  case   Case       @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  entity CaseEntity @relation(fields: [caseEntityId], references: [id], onDelete: Cascade)
+
+  entityLinks   CaseTargetEntityLink[]
+  relationLinks CaseTargetRelationLink[]
+  artifactLinks CaseTargetArtifactLink[]
+
+  @@unique([caseId, caseEntityId])
+  @@index([caseId])
+}
+
+model CaseTargetEntityLink {
+  id              String   @id @default(cuid())
+  targetId        String
+  caseEntityId    String
+  createdAt       DateTime @default(now())
+  createdByUserId String
+
+  target CaseTarget @relation(fields: [targetId], references: [id], onDelete: Cascade)
+  entity CaseEntity @relation(fields: [caseEntityId], references: [id], onDelete: Cascade)
+
+  @@unique([targetId, caseEntityId])
+  @@index([caseEntityId])
+}
+
+model CaseRelation {
+  id           String @id @default(cuid())
+  caseId       String
+  fromEntityId String
+  toEntityId   String
+  type         String
+
+  confidenceLevel String @default("medium") // low | medium | confirmed
+  confidenceScore Int?
+  metadata        String @default("{}")
+
+  createdByUserId String
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  case        Case                     @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  fromEntity  CaseEntity               @relation("CaseRelationFrom", fields: [fromEntityId], references: [id], onDelete: Cascade)
+  toEntity    CaseEntity               @relation("CaseRelationTo", fields: [toEntityId], references: [id], onDelete: Cascade)
+  sources     CaseRelationSource[]
+  targetLinks CaseTargetRelationLink[]
+
+  @@index([caseId])
+}
+
+model CaseRelationSource {
+  id             String   @id @default(cuid())
+  caseRelationId String
+  kind           String // graph_edge | workflow | manual
+  graphId        String?
+  graphEdgeId    String?
+  data           String   @default("{}")
+  createdAt      DateTime @default(now())
+
+  relation CaseRelation @relation(fields: [caseRelationId], references: [id], onDelete: Cascade)
+}
+
+model CaseTargetRelationLink {
+  id              String   @id @default(cuid())
+  targetId        String
+  caseRelationId  String
+  createdAt       DateTime @default(now())
+  createdByUserId String
+
+  target   CaseTarget   @relation(fields: [targetId], references: [id], onDelete: Cascade)
+  relation CaseRelation @relation(fields: [caseRelationId], references: [id], onDelete: Cascade)
+
+  @@unique([targetId, caseRelationId])
+  @@index([caseRelationId])
+}
+
+model CaseDerivedRelationDismissal {
+  id                String   @id @default(cuid())
+  caseId            String
+  fingerprint       String // hash(fromNormalized,toNormalized,type)
+  dismissedByUserId String
+  dismissedAt       DateTime @default(now())
+
+  @@unique([caseId, fingerprint])
+}
+
+model CaseArtifact {
+  id      String  @id @default(cuid())
+  caseId  String
+  graphId String? @unique
+
+  type String // note | file | screenshot | link | hash
+  name String
+  path String @default("/")
+
+  mimeType   String?
+  sizeBytes  Int?
+  storageKey String?
+
+  content    String?
+  metadata   String  @default("{}")
+  confidence String  @default("medium") // low | medium | confirmed
+
+  createdByUserId String
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  lastOpenedAt    DateTime?
+
+  case        Case                     @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  graph       Graph?                   @relation("GraphCaseNote", fields: [graphId], references: [id], onDelete: SetNull)
+  links       CaseArtifactLink[]
+  targetLinks CaseTargetArtifactLink[]
+
+  @@index([caseId, type])
+  @@index([caseId, type, lastOpenedAt])
+  @@index([caseId, path])
+}
+
+model CaseTargetArtifactLink {
+  id              String   @id @default(cuid())
+  targetId        String
+  artifactId      String
+  createdAt       DateTime @default(now())
+  createdByUserId String
+
+  target   CaseTarget   @relation(fields: [targetId], references: [id], onDelete: Cascade)
+  artifact CaseArtifact @relation(fields: [artifactId], references: [id], onDelete: Cascade)
+
+  @@unique([targetId, artifactId])
+  @@index([artifactId])
+}
+
+model CaseArtifactLink {
+  id           String   @id @default(cuid())
+  artifactId   String
+  caseEntityId String
+  createdAt    DateTime @default(now())
+
+  artifact CaseArtifact @relation(fields: [artifactId], references: [id], onDelete: Cascade)
+  entity   CaseEntity   @relation(fields: [caseEntityId], references: [id], onDelete: Cascade)
+
+  @@unique([artifactId, caseEntityId])
+}
+
+model CaseEvent {
+  id      String  @id @default(cuid())
+  caseId  String
+  kind    String // audit | factual
+  type    String
+  message String?
+  data    String  @default("{}")
+
+  actorUserId String?
+  occurredAt  DateTime?
+  confidence  String    @default("medium") // low | medium | confirmed
+  createdAt   DateTime  @default(now())
+
+  case Case @relation(fields: [caseId], references: [id], onDelete: Cascade)
+
+  @@index([caseId, createdAt])
+  @@index([caseId, occurredAt])
+}
+
+// ============================================
+// WORKSPACE MEMBERS
+// ============================================
+
+model WorkspaceMember {
+  id          String @id @default(cuid())
+  userId      String // Better Auth user ID
+  workspaceId String @map("organizationId")
+
+  // Ruolo
+  role String @default("user") // "admin" | "user"
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, workspaceId])
+  @@index([userId])
+  @@index([workspaceId])
+  @@map("OrganizationMember")
+}
+
+// ============================================
+// GRAPHS - Grafi OSINT salvati
+// ============================================
+
+model Graph {
+  id          String  @id @default(cuid())
+  userId      String // Better Auth user ID (proprietario)
+  workspaceId String? @map("organizationId") // Workspace proprietario
+  caseId      String
+
+  name        String
+  description String?
+  notes       String?
+
+  // Visibilità: "private" (solo owner) | "workspace" (condiviso con workspace)
+  visibility String @default("private")
+
+  // Dati del grafo (JSONB nativo)
+  nodes Json @default(dbgenerated("'[]'::jsonb"))
+  edges Json @default(dbgenerated("'[]'::jsonb"))
+
+  // Metadata
+  thumbnail String?
+  nodeCount Int     @default(0)
+  edgeCount Int     @default(0)
+
+  // Timestamps
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  lastOpenedAt DateTime?
+
+  // Relations
+  workspace     Workspace?       @relation(fields: [workspaceId], references: [id], onDelete: SetNull)
+  case          Case             @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  caseNote      CaseArtifact?    @relation("GraphCaseNote")
+  transformJobs TransformJob[]
+  agentLease    GraphAgentLease?
+  agentRuns     AgentRun[]
+
+  @@index([userId])
+  @@index([workspaceId])
+  @@index([caseId])
+  @@index([userId, updatedAt])
+  @@index([workspaceId, visibility])
+}
+
+model GraphAgentLease {
+  graphId    String    @id
+  generation Int       @default(0)
+  runId      String?
+  userId     String?
+  token      String?
+  expiresAt  DateTime?
+  graph      Graph     @relation(fields: [graphId], references: [id], onDelete: Cascade)
+
+  @@index([expiresAt])
+}
+
+model AgentWorker {
+  id              String   @id @default(uuid())
+  protocolVersion Int
+  queueName       String
+  heartbeatAt     DateTime
+  expiresAt       DateTime
+  createdAt       DateTime @default(now())
+
+  @@index([protocolVersion, queueName, expiresAt])
+}
+
+model AgentRun {
+  id                String       @id @default(cuid())
+  graphId           String
+  userId            String
+  goal              String
+  model             String
+  reasoning         String
+  approvalMode      String       @default("guarded")
+  parentRunId       String?
+  status            String       @default("running")
+  eventCount        Int          @default(0)
+  workerStartedAt   DateTime?
+  startRequestHash  String?
+  inputTokens       Int          @default(0)
+  outputTokens      Int          @default(0)
+  contextCheckpoint Json?
+  contextUsage      Json?
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+  endedAt           DateTime?
+  archivedAt        DateTime?
+  graph             Graph        @relation(fields: [graphId], references: [id], onDelete: Cascade)
+  events            AgentEvent[]
+
+  @@index([userId, createdAt])
+  @@index([graphId, createdAt])
+}
+
+model AgentEvent {
+  runId     String
+  sequence  Int
+  data      Json
+  createdAt DateTime @default(now())
+  run       AgentRun @relation(fields: [runId], references: [id], onDelete: Cascade)
+
+  @@id([runId, sequence])
+}
+
+// Graph agent credentials (one per provider).
+model WorkspaceAgentSetting {
+  workspaceId     String
+  provider        String
+  apiKey          String // enc:v1 AES-256-GCM, never returned to clients
+  keyHint         String
+  models          String[]  @default([]) // OpenRouter slugs allowed by the admin
+  updatedByUserId String
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  workspace       Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@id([workspaceId, provider])
+}
+
+// ============================================
+// WORKSPACE PLUGIN SETTINGS
+// ============================================
+
+model WorkspacePluginSetting {
+  id          String @id @default(cuid())
+  workspaceId String @map("organizationId")
+  pluginId    String // ID del plugin
+
+  // Stato
+  enabled Boolean @default(true)
+
+  // Configurazione plugin (JSON) - es. API keys condivise
+  config String @default("{}")
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@unique([workspaceId, pluginId])
+  @@index([workspaceId])
+  @@map("OrgPluginSetting")
+}
+
+// ============================================
+// USER PLUGIN SETTINGS - Impostazioni plugin personali
+// ============================================
+
+model UserPluginSetting {
+  id       String @id @default(cuid())
+  userId   String // Better Auth user ID
+  pluginId String // ID del plugin
+
+  // Stato
+  enabled Boolean @default(true)
+
+  // Configurazione plugin (JSON)
+  config String @default("{}")
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, pluginId])
+  @@index([userId])
+}
+
+// ============================================
+// USER PREFERENCES - Preferenze utente generali
+// ============================================
+
+model UserPreference {
+  id     String @id @default(cuid())
+  userId String @unique // Better Auth user ID
+
+  // Workspace attivo
+  activeWorkspaceId String? @map("activeOrganizationId")
+
+  // Preferenze grafo
+  autoLayout      Boolean @default(true)
+  showGrid        Boolean @default(true)
+  showMiniMap     Boolean @default(true)
+  defaultEdgeType String  @default("default")
+
+  // Preferenze UI
+  theme String @default("system")
+
+  // Ultimo grafo aperto
+  lastGraphId String?
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// ============================================
+// CUSTOM PLUGINS - Plugin caricati dagli utenti
+// ============================================
+
+model CustomPlugin {
+  id     String @id @default(cuid())
+  userId String // Proprietario del plugin
+
+  // Metadata plugin
+  name        String
+  description String?
+  version     String  @default("1.0.0")
+
+  // Codice plugin (JavaScript)
+  code String
+
+  // Configurazione
+  inputTypes String // JSON array di tipi supportati
+
+  // Stato
+  isPublic   Boolean @default(false)
+  isVerified Boolean @default(false)
+
+  // Stats
+  installs Int @default(0)
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@index([isPublic])
+}
+
+// ============================================
+// COMMUNITY PLUGIN INSTALLS - Plugin community installati
+// ============================================
+
+model CommunityPluginInstall {
+  id       String @id @default(cuid())
+  userId   String
+  pluginId String
+
+  enabled Boolean @default(true)
+
+  createdAt DateTime @default(now())
+
+  @@unique([userId, pluginId])
+  @@index([userId])
+  @@index([pluginId])
+}
+
+// ============================================
+// ADDONS - Addon installati via manifest URL (stile Stremio)
+// ============================================
+
+model WorkspaceAddonInstall {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Workspace owner
+  workspaceId String    @map("organizationId")
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  // Addon info (da manifest)
+  addonId         String // ID univoco addon
+  manifestUrl     String // URL manifest.json
+  manifestVersion String // Versione manifest
+
+  // Manifest cached (JSON serializzato)
+  manifestData String // Intero manifest JSON
+
+  // Status
+  enabled       Boolean   @default(true)
+  installedAt   DateTime  @default(now())
+  uninstalledAt DateTime?
+
+  // Security
+  webhookSecret String // Secret per HMAC signature
+
+  // Configuration (salvata da user)
+  config String? // JSON config values
+
+  // Relations
+  jobs TransformJob[]
+
+  @@unique([workspaceId, addonId])
+  @@index([workspaceId])
+  @@index([addonId])
+  @@map("OrgAddonInstall")
+}
+
+// ============================================
+// TRANSFORM JOBS - Job per transform async
+// ============================================
+// JobStatus values: PENDING | SUBMITTED | PROCESSING | COMPLETED | FAILED | TIMEOUT | CANCELLED
+
+model TransformJob {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Ownership
+  workspaceId String    @map("organizationId")
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  graphId String
+  graph   Graph  @relation(fields: [graphId], references: [id], onDelete: Cascade)
+
+  // Addon info
+  addonId     String
+  transformId String // ID della transform specifica
+
+  // Relations
+  addon WorkspaceAddonInstall @relation(fields: [workspaceId, addonId], references: [workspaceId, addonId], onDelete: Cascade)
+
+  // Job state (PENDING | SUBMITTED | PROCESSING | COMPLETED | FAILED | TIMEOUT | CANCELLED)
+  status String @default("PENDING")
+
+  // Input/Output
+  inputEntity String // JSON serializzato OSINTEntity
+  config      String? // JSON config per questa execution
+
+  result String? // JSON TransformResult (quando completed)
+  error  String? // Error message (quando failed)
+
+  // Metadata
+  externalJobId String? // Job ID dal plugin server
+  webhookUrl    String // URL per callback
+
+  progress        Int? // 0-100
+  progressMessage String? // Messaggio stato
+
+  // Timestamps
+  startedAt   DateTime  @default(now())
+  submittedAt DateTime? // Quando inviato al plugin
+  completedAt DateTime? // Quando completato/fallito
+
+  webhookEvents TransformWebhookEvent[]
+
+  @@index([workspaceId])
+  @@index([graphId])
+  @@index([status])
+  @@index([addonId])
+}
+
+model TransformWebhookEvent {
+  id         String   @id @default(cuid())
+  eventId    String   @unique
+  jobId      String
+  status     String
+  receivedAt DateTime @default(now())
+
+  job TransformJob @relation(fields: [jobId], references: [id], onDelete: Cascade)
+
+  @@index([jobId, receivedAt])
+}
+
+// ============================================
+// WORKSPACE SESSIONS - Interactive isolated workspaces (e.g. Kasm browser)
+// ============================================
+
+model WorkspaceSession {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  workspaceId     String @map("organizationId")
+  createdByUserId String
+
+  // Kind/runtime
+  kind    String @default("kasm") // kasm (future: rdp, other)
+  browser String // chrome | tor (for kasm)
+
+  // Requested target
+  targetUrl String
+
+  // Docker info
+  containerId String?
+  hostPort    Int?
+  vncPassword String?
+
+  // Lifecycle
+  status    String    @default("STARTING") // STARTING | READY | STOPPED | FAILED
+  error     String?
+  expiresAt DateTime
+  readyAt   DateTime?
+  stoppedAt DateTime?
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId, status])
+  @@index([createdByUserId])
+  @@index([expiresAt])
+}

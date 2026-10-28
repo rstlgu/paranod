@@ -1,0 +1,19 @@
+{
+  "name": "paranod-container-runner",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "main": "index.mjs",
+  "scripts": {
+    "start": "node index.mjs",
+    "test": "node --test test/*.test.mjs"
+  },
+  "overrides": {
+    "uuid": "11.1.1"
+  },
+  "dependencies": {
+    "dockerode": "^4.0.7",
+    "zod": "^4.6.7"
+  },
+  "license": "MIT"
+}

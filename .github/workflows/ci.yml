@@ -1,0 +1,68 @@
+name: CI
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      DATABASE_URL: postgresql://paranod:paranod@127.0.0.1:5432/paranod
+      DIRECT_URL: postgresql://paranod:paranod@127.0.0.1:5432/paranod
+      BETTER_AUTH_SECRET: ci-only-auth-secret-at-least-32-characters
+      BETTER_AUTH_URL: http://localhost:3002
+      APP_URL: http://localhost:3002
+      SECRETS_ENCRYPTION_KEY: ci-only-encryption-key-at-least-32-characters
+      CRON_SECRET: ci-only-cron-secret-at-least-32-characters
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: paranod
+          POSTGRES_USER: paranod
+          POSTGRES_PASSWORD: paranod
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U paranod -d paranod"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.5
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm prisma validate
+      - run: pnpm prisma generate
+      - run: pnpm prisma migrate deploy
+      - run: pnpm typecheck
+      - run: pnpm test
+      - run: pnpm lint
+      - run: pnpm build:agent
+      - run: pnpm build
+      - run: pnpm audit
+
+      - name: Verify container runner
+        working-directory: services/container-runner
+        run: |
+          npm ci
+          npm test
+          npm audit --omit=dev

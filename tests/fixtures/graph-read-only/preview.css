@@ -1,0 +1,13 @@
+html, body, #root { width: 100%; height: 100%; margin: 0; }
+body { overflow: hidden; font-family: Arial, sans-serif; }
+.fixture-shell { display: flex; flex-direction: column; height: 100dvh; }
+.fixture-toolbar {
+  display: flex; flex: none; flex-wrap: wrap; align-items: center;
+  gap: 8px 12px; padding: 8px 12px; border-bottom: 1px solid #cbd5e1;
+  background: #fff; color: #171717; font-size: 12px; line-height: 1.4;
+}
+.fixture-toolbar button { border: 1px solid #9ca3af; border-radius: 4px; padding: 4px 8px; }
+.fixture-toolbar button:disabled { opacity: .4; }
+.fixture-toolbar output { font-variant-numeric: tabular-nums; }
+.fixture-toolbar [role='alert'] { color: #b91c1c; flex-basis: 100%; }
+.fixture-workspace { flex: 1; min-height: 0; min-width: 0; position: relative; }

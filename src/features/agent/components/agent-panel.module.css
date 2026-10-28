@@ -1,0 +1,1014 @@
+.dock {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  position: relative;
+}
+.content {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+.shell {
+  position: relative;
+  flex-shrink: 0;
+  max-width: 70vw;
+  height: calc(100dvh - 36px);
+  overflow: hidden;
+  border-right: 1px solid var(--border);
+}
+.shellInner {
+  height: 100%;
+  max-width: 70vw;
+}
+.resize {
+  position: absolute;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: 6px;
+  cursor: col-resize;
+  z-index: 5;
+  touch-action: none;
+}
+.resize:hover,
+.resize:focus-visible {
+  background: var(--ring);
+  opacity: 0.5;
+}
+.panel {
+  background: var(--background);
+  color: var(--foreground);
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  font-size: 13px;
+  line-height: 1.5;
+  letter-spacing: 0;
+  overflow: hidden;
+  -webkit-user-select: text;
+  user-select: text;
+}
+.panel * {
+  box-sizing: border-box;
+  letter-spacing: 0;
+}
+.header {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 8px 0 14px;
+  border-bottom: 1px solid var(--border);
+  box-sizing: border-box;
+  /* Matches the graph topbar (h-11) it sits beside. */
+  height: 44px;
+}
+.title {
+  font-size: 13px;
+  font-weight: 600;
+}
+.headerActions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+.header[data-floating] {
+  cursor: move;
+  touch-action: none;
+}
+.iconButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  flex-shrink: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--muted-foreground);
+  border: 0;
+  cursor: pointer;
+  transition:
+    opacity 0.15s ease-out,
+    background 0.15s ease-out;
+}
+.iconButton:hover {
+  background: var(--accent);
+  color: var(--foreground);
+}
+.panel button:focus-visible,
+.panel select:focus-visible,
+.panel textarea:focus-visible,
+.panel summary:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+.panel button:disabled,
+.panel select:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.conversationRow {
+  display: flex;
+  align-items: stretch;
+  gap: 2px;
+  margin: 1px 0;
+  border-radius: 6px;
+}
+.conversationRow[data-selected] {
+  background: var(--accent);
+}
+.conversationSelect {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  padding: 6px 8px;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 12px;
+  text-align: left;
+  cursor: pointer;
+  border-radius: 6px;
+}
+.conversationSelect:hover {
+  background: var(--accent);
+}
+.conversationTitle {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.conversationArchive {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  flex-shrink: 0;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--muted-foreground);
+  cursor: pointer;
+}
+.conversationArchive:hover {
+  background: var(--accent);
+  color: var(--foreground);
+}
+.transcript {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  overflow-anchor: none;
+  overscroll-behavior: contain;
+  padding: 16px 14px 8px;
+}
+.contextControl {
+  position: relative;
+  display: flex;
+  align-items: center;
+  margin-left: auto;
+}
+.contextTrigger {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border: 0;
+  border-radius: 50%;
+  color: var(--muted-foreground);
+  background: transparent;
+  cursor: pointer;
+}
+.contextTrigger:hover {
+  background: var(--accent);
+  color: var(--foreground);
+}
+.contextTrigger:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+.contextBackdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  border: 0;
+  background: transparent;
+  cursor: default;
+}
+.contextPopover {
+  position: absolute;
+  bottom: calc(100% + 12px);
+  right: -34px;
+  z-index: 61;
+  width: min(290px, calc(100vw - 40px));
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--popover);
+  color: var(--popover-foreground);
+  box-shadow: 0 8px 30px rgb(0 0 0 / 0.14);
+  font-size: 12px;
+  line-height: 1.5;
+}
+.contextHeading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 4px;
+}
+.contextHeading strong {
+  font-size: 13px;
+  font-weight: 600;
+}
+.contextPopover small {
+  display: block;
+  margin-top: 6px;
+  color: var(--muted-foreground);
+  font-size: 11px;
+}
+.contextStats {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 4px 12px;
+  margin: 12px 0;
+  padding: 10px 0;
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  font-variant-numeric: tabular-nums;
+}
+.contextStats span:nth-child(n + 3) {
+  color: var(--muted-foreground);
+}
+.contextButtons {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin-top: 10px;
+}
+.contextButtons button,
+.contextConfirmation button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 8px;
+  border: 0;
+  border-radius: 6px;
+  text-align: left;
+  background: transparent;
+  cursor: pointer;
+}
+.contextButtons button:hover,
+.contextConfirmation button:hover {
+  background: var(--accent);
+}
+.contextButtons button:disabled,
+.contextConfirmation button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.contextConfirmation {
+  margin-top: 10px;
+}
+/* Match the notes panel: a narrow thumb inside a comfortable scroll track. */
+.transcript::-webkit-scrollbar {
+  width: 10px;
+}
+.transcript::-webkit-scrollbar-button {
+  display: none;
+  width: 0;
+  height: 0;
+}
+.transcript::-webkit-scrollbar-track {
+  background: transparent;
+  border-left: 1px solid transparent;
+}
+.transcript::-webkit-scrollbar-thumb {
+  background-color: rgb(228 228 231 / 0.9);
+  background-clip: content-box;
+  border: 3px solid transparent;
+  border-radius: 9999px;
+}
+.transcript::-webkit-scrollbar-thumb:hover {
+  background-color: rgb(212 212 216 / 0.9);
+}
+:global(.dark) .transcript::-webkit-scrollbar-thumb {
+  background-color: rgb(63 63 70 / 0.7);
+}
+:global(.dark) .transcript::-webkit-scrollbar-thumb:hover {
+  background-color: rgb(82 82 91 / 0.7);
+}
+@supports not selector(::-webkit-scrollbar) {
+  .transcript {
+    scrollbar-width: thin;
+    scrollbar-color: rgb(228 228 231 / 0.9) transparent;
+  }
+  :global(.dark) .transcript {
+    scrollbar-color: rgb(63 63 70 / 0.7) transparent;
+  }
+}
+.empty {
+  display: flex;
+  min-height: 200px;
+  height: 65%;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 0 16px;
+  text-align: center;
+  color: var(--muted-foreground);
+}
+.empty h2 {
+  font-size: 17px;
+  font-weight: 600;
+  margin: 0;
+  color: var(--foreground);
+}
+.empty span {
+  font-size: 12px;
+}
+.empty a {
+  font-size: 12px;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.userMessage {
+  width: fit-content;
+  max-width: 85%;
+  margin: 0 0 12px auto;
+  padding: 8px 12px;
+  font-size: 15px;
+  line-height: 1.5;
+  background: color-mix(in oklab, var(--foreground) 6%, var(--background));
+  border-radius: 16px 16px 4px 16px;
+  overflow-wrap: anywhere;
+  animation: appear 0.18s ease-out;
+}
+:global(.dark) .userMessage {
+  background: color-mix(in oklab, black 8%, var(--background));
+}
+.userMessage p {
+  margin: 0;
+  white-space: pre-wrap;
+}
+.turn {
+  margin: 0 0 18px;
+}
+.workHeader {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 4px 12px;
+  margin: 2px 0 16px;
+  padding: 0 0 12px;
+  border-bottom: 1px solid var(--border);
+  font-size: 12px;
+  color: var(--muted-foreground);
+}
+.responseBody {
+  display: flow-root;
+}
+.transcript {
+  overflow-anchor: none;
+}
+.turnFooter {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  min-height: 24px;
+  margin-left: -6px;
+}
+.turnFooter .iconButton {
+  width: 24px;
+  height: 24px;
+}
+.turn:not([data-current]) .turnFooter .iconButton {
+  opacity: 0;
+}
+.turn:hover .turnFooter .iconButton,
+.turnFooter .iconButton:focus-visible {
+  opacity: 1;
+}
+.status {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+  margin: 0 0 0 6px;
+  color: var(--muted-foreground);
+  font-size: 11px;
+}
+.elapsed {
+  font-variant-numeric: tabular-nums;
+}
+.toolStatus {
+  flex-shrink: 0;
+  font-size: 10px;
+  color: var(--muted-foreground);
+}
+.message {
+  margin: 4px 0;
+  font-size: 15px;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+.message p {
+  margin: 0 0 8px;
+}
+.message > :last-child,
+.message p:last-child {
+  margin-bottom: 0;
+}
+.message h1,
+.message h2,
+.message h3 {
+  font-size: 16px;
+  font-weight: 600;
+  margin: 12px 0 4px;
+}
+.message ul,
+.message ol {
+  padding-left: 18px;
+  margin: 4px 0 8px;
+}
+.message li + li {
+  margin-top: 2px;
+}
+.message ul {
+  list-style: disc;
+}
+.message ol {
+  list-style: decimal;
+}
+.message code {
+  font-size: 13.5px;
+  padding: 1px 4px;
+  border-radius: 4px;
+  background: var(--muted);
+}
+.message pre {
+  overflow-x: auto;
+  max-width: 100%;
+  border: 1px solid var(--border);
+  padding: 8px 10px;
+  border-radius: 6px;
+}
+.message pre code {
+  padding: 0;
+  background: none;
+}
+.message a {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.message img {
+  display: none;
+}
+.message .nodeMention img {
+  display: block;
+}
+.message [data-response-word] {
+  animation: responseFade 180ms ease-out both;
+}
+@keyframes responseFade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+.sources {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+  margin: 6px 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: 11px;
+}
+.message .sources {
+  padding: 0;
+  list-style: none;
+}
+.sources li {
+  min-width: 0;
+  max-width: 100%;
+}
+.sources a {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+  color: var(--muted-foreground);
+  text-decoration: underline;
+  overflow-wrap: anywhere;
+}
+.sources svg {
+  flex-shrink: 0;
+}
+.approval {
+  margin: 6px 0 8px;
+  padding: 9px 11px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: color-mix(in oklab, var(--muted) 45%, transparent);
+  animation: appear 0.18s ease-out;
+}
+.approvalHead {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+}
+.approvalHead svg {
+  flex-shrink: 0;
+  color: #c59534;
+}
+.approvalHead strong {
+  font-weight: 600;
+}
+.approval p {
+  margin: 5px 0 1px;
+  overflow-wrap: anywhere;
+}
+.approval small {
+  display: block;
+  font-size: 11px;
+  color: var(--muted-foreground);
+  overflow-wrap: anywhere;
+}
+.decisionActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 6px;
+  margin-top: 8px;
+}
+.decisionActions button {
+  height: 26px;
+  padding: 0 10px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  font-size: 12px;
+  cursor: pointer;
+}
+.decisionActions button:last-child {
+  border-color: var(--foreground);
+  background: var(--foreground);
+  color: var(--background);
+}
+.scrollBottom {
+  display: flex;
+  justify-content: center;
+  height: 0;
+  position: relative;
+  top: -40px;
+}
+.scrollBottom button {
+  background: var(--background);
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  box-shadow: 0 2px 6px #0001;
+}
+.error {
+  margin: 0 14px 6px;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 12px;
+  color: var(--destructive);
+}
+.error svg {
+  flex-shrink: 0;
+}
+.error span {
+  flex: 1;
+  overflow-wrap: anywhere;
+}
+.error button {
+  text-decoration: underline;
+  cursor: pointer;
+}
+.composer {
+  padding: 6px 12px 12px;
+  flex-shrink: 0;
+}
+.composerBox {
+  padding: 10px 8px 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: var(--background);
+  box-shadow: 0 1px 3px #0000000f;
+  cursor: text;
+  transition: border-color 0.15s ease-out;
+}
+.composerBox:focus-within {
+  border-color: color-mix(in oklab, var(--ring) 55%, var(--border));
+}
+.composerInput {
+  display: block;
+  width: 100%;
+  min-height: 40px;
+  max-height: 200px;
+  overflow-y: auto;
+  field-sizing: content;
+  resize: none;
+  background: transparent;
+  border: 0;
+  color: var(--foreground);
+  font: inherit;
+  font-size: 15px;
+  line-height: 1.5;
+  padding: 0 4px 0 0;
+  outline: none;
+}
+.composerInput p {
+  margin: 0;
+}
+.composerInput :global(.is-editor-empty):first-child::before {
+  content: attr(data-placeholder);
+  float: left;
+  height: 0;
+  pointer-events: none;
+  color: var(--muted-foreground);
+}
+.panel .composerInput:focus-visible {
+  outline: none;
+}
+.composerActions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 6px;
+  margin-top: 6px;
+  margin-left: -6px;
+  cursor: default;
+}
+.modelControls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px;
+  min-width: 0;
+  flex: 1;
+}
+.modelTrigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  height: 24px;
+  border: 0;
+  background: transparent;
+  color: var(--muted-foreground);
+  border-radius: 999px;
+  font: inherit;
+  font-size: 12px;
+  padding: 0 6px;
+  max-width: 100%;
+  min-width: 0;
+  cursor: pointer;
+  transition: background 0.15s ease-out;
+}
+.modelTrigger svg {
+  flex-shrink: 0;
+}
+.modelTrigger span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.modelTrigger:hover:not(:disabled),
+.modelTrigger[data-state='open'] {
+  background: var(--accent);
+  color: var(--foreground);
+}
+.modelTrigger[data-mode='auto'] {
+  color: #c59534;
+}
+.modelTrigger:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.modelTrigger:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+.modelDropdown {
+  font-size: 11px;
+}
+.modelDropdown :global([data-slot='dropdown-menu-label']) {
+  font-size: 10px;
+}
+.send {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  flex-shrink: 0;
+  border: 0;
+  border-radius: 50%;
+  background: var(--foreground);
+  color: var(--background);
+  cursor: pointer;
+}
+.composerHint {
+  margin: 6px 6px 0;
+  color: var(--muted-foreground);
+  font-size: 10.5px;
+}
+.steps {
+  margin: 0 0 4px;
+  animation: appear 0.18s ease-out;
+}
+.stepsToggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 100%;
+  min-height: 26px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--muted-foreground);
+  font: inherit;
+  font-size: 12px;
+  text-align: left;
+  cursor: pointer;
+  transition: color 0.15s ease-out;
+}
+.stepsToggle:hover {
+  color: var(--foreground);
+}
+.stepsToggle > svg {
+  flex-shrink: 0;
+}
+.stepsToggle:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+.stepsSummary {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  min-width: 0;
+  animation: stepSwap 0.28s ease-out;
+}
+.stepsSummary strong {
+  flex-shrink: 0;
+  font-weight: 500;
+}
+.stepsSummary small {
+  font-size: 11px;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  opacity: 0.8;
+}
+.stepsSummary[data-live] {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+}
+
+.compactRow {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 3px 0 8px;
+  color: var(--muted-foreground);
+}
+.activityIcon,
+.activityPulse {
+  display: inline-flex;
+  flex: 0 0 15px;
+  margin-top: 3px;
+}
+.activityPulse {
+  animation: activityPulse 1.8s ease-in-out infinite;
+}
+@keyframes activityPulse {
+  0%,
+  100% {
+    opacity: 0.45;
+    transform: translateY(0);
+  }
+  50% {
+    opacity: 1;
+    transform: translateY(-1px);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .activityPulse {
+    animation: none;
+  }
+}
+.workNote {
+  margin: 0 0 12px;
+  color: var(--foreground);
+  line-height: 1.65;
+}
+.workNote p {
+  margin: 0;
+}
+.compactRow > .stepsToggle {
+  flex-shrink: 0;
+  min-height: 22px;
+  padding: 0 3px;
+}
+.compactActivity {
+  flex: 1;
+  min-width: 0;
+  font-size: 12px;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+.compactActivity p {
+  margin: 0;
+}
+.compactNote {
+  animation: stepSwap 180ms ease-out;
+}
+.compactNote p {
+  background: linear-gradient(
+    100deg,
+    var(--muted-foreground) 30%,
+    var(--foreground) 48%,
+    var(--muted-foreground) 66%
+  );
+  background-size: 240% 100%;
+  background-clip: text;
+  -webkit-background-clip: text;
+  color: transparent;
+  animation: shimmer 2.4s linear infinite;
+}
+.compactNote strong {
+  font-weight: 500;
+}
+.compactActivity small {
+  display: block;
+  margin-top: 3px;
+  color: var(--muted-foreground);
+}
+.nodeMention {
+  cursor: pointer !important;
+  font: inherit;
+  font-weight: 600;
+  max-width: 100%;
+  text-align: left;
+  overflow-wrap: anywhere;
+}
+.nodeMention:focus-visible {
+  outline: 2px solid var(--reference-accent);
+  outline-offset: 2px;
+  border-radius: 3px;
+}
+.stepsSummary[data-live] small {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.chevron {
+  transition: transform 0.15s ease-out;
+}
+.steps[data-open] .chevron {
+  transform: rotate(90deg);
+}
+.shimmer {
+  background: linear-gradient(
+    90deg,
+    var(--muted-foreground) 0%,
+    var(--foreground) 50%,
+    var(--muted-foreground) 100%
+  );
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: shimmer 1.8s linear infinite;
+}
+.stepList {
+  list-style: none;
+  margin: 2px 0 8px 5px;
+  padding: 0 0 0 12px;
+  border-left: 1px solid var(--border);
+}
+.step {
+  display: flex;
+  gap: 7px;
+  padding: 3px 0;
+  font-size: 12px;
+  animation: appear 0.18s ease-out;
+}
+.step > svg {
+  flex-shrink: 0;
+  margin-top: 3px;
+  color: var(--muted-foreground);
+}
+.stepDot {
+  flex-shrink: 0;
+  width: 5px;
+  height: 5px;
+  margin: 7px 4px 0;
+  border-radius: 50%;
+  background: var(--muted-foreground);
+  opacity: 0.6;
+}
+.step > div {
+  flex: 1;
+  min-width: 0;
+}
+.stepTitle {
+  display: flex;
+  gap: 8px;
+  justify-content: space-between;
+  font-weight: 500;
+}
+.stepTitle .toolStatus {
+  font-weight: 400;
+}
+.step small,
+.step p {
+  display: block;
+  margin: 1px 0 0;
+  color: var(--muted-foreground);
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+.step small {
+  font-size: 11px;
+}
+.step > svg.success {
+  color: #169873;
+}
+.step > svg.failure {
+  color: #d75b60;
+}
+@keyframes stepSwap {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes shimmer {
+  from {
+    background-position: 100% 0;
+  }
+  to {
+    background-position: -100% 0;
+  }
+}
+.spin {
+  animation: spin 1.2s linear infinite;
+}
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@keyframes appear {
+  from {
+    opacity: 0;
+    transform: translateY(3px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .panel *,
+  .message [data-response-word],
+  .compactNote,
+  .compactNote p,
+  .spin {
+    animation: none !important;
+    scroll-behavior: auto !important;
+  }
+  .compactNote p {
+    background: none;
+    color: var(--muted-foreground);
+  }
+}
