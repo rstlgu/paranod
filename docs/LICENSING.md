@@ -1,0 +1,11 @@
+# Licensing and source availability
+
+Copyright (c) 2026 Luigi Rosato. Unless a file or third-party notice states otherwise, this distribution of Paranod and its own container runner is licensed under the GNU Affero General Public License, version 3 only (SPDX: `AGPL-3.0-only`). The complete terms are in [LICENSE](../LICENSE). Paranod is provided without warranty. The independently maintained [Paranod Addon SDK](https://github.com/rstlgu/paranod-addon-sdk) remains MIT.
+
+The application menu includes **License & source**. It links to the license and the complete source archive corresponding to version 2.3.0, including dependency lockfiles, migrations, tests and build/deployment scripts. The same archive is supplied beside the prebuilt Docker images on the release page. Install instructions explain how to reproduce a source build. Third-party packages keep their licenses and notices; see [THIRD_PARTY_NOTICES.md](../THIRD_PARTY_NOTICES.md).
+
+When modifying and deploying Paranod for network users, follow section 13 of AGPLv3 and prominently offer those users the Corresponding Source of the actual modified version. Update `public/source.html` to point to that source, retain the license notices, and publish any necessary build/install scripts. Linking to the unmodified upstream source is insufficient for a modified deployment. Redistributed binaries also carry the source obligations in section 6. Do not include deployment secrets, credentials or investigation data in a source archive.
+
+An independent addon service does not become part of Paranod merely because it implements the public HTTP protocol; whether particular code forms a combined work depends on its actual integration. Builtin code incorporated into the application must have compatible licensing. The SDK's MIT license is not an exception to AGPL for code copied from the app.
+
+Earlier copies published under MIT retain their original permissions. This clean-history publication does not revoke those grants. Contributions submitted to this repository are under AGPL-3.0-only unless an explicit, accepted arrangement says otherwise; ordinary contributions do not automatically grant the maintainer proprietary relicensing rights.

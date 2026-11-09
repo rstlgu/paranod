@@ -1,0 +1,57 @@
+import {
+  Geist,
+  Geist_Mono,
+  Instrument_Sans,
+  Inter,
+  Mulish,
+  Noto_Sans_Mono,
+  Chakra_Petch
+} from 'next/font/google';
+
+import { cn } from '@/lib/utils';
+
+// Use Chakra Petch as the main font for a technical/cyber look
+const fontSans = Chakra_Petch({
+  subsets: ['latin'],
+  weight: ['300', '400', '500', '600', '700'],
+  variable: '--font-sans'
+});
+
+const fontGeist = Geist({
+  subsets: ['latin'],
+  variable: '--font-geist'
+});
+
+const fontMono = Geist_Mono({
+  subsets: ['latin'],
+  variable: '--font-mono'
+});
+
+const fontInstrument = Instrument_Sans({
+  subsets: ['latin'],
+  variable: '--font-instrument'
+});
+
+const fontNotoMono = Noto_Sans_Mono({
+  subsets: ['latin'],
+  variable: '--font-noto-mono'
+});
+
+const fontMullish = Mulish({
+  subsets: ['latin'],
+  variable: '--font-mullish'
+});
+
+const fontInter = Inter({
+  subsets: ['latin'],
+  variable: '--font-inter'
+});
+
+export const fontVariables = cn(
+  fontSans.variable,
+  fontMono.variable,
+  fontInstrument.variable,
+  fontNotoMono.variable,
+  fontMullish.variable,
+  fontInter.variable
+);

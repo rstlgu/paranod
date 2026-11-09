@@ -1,0 +1,7 @@
+http:
+  serversTransports:
+    kasm-transport:
+      insecureSkipVerify: true
+      # KasmVNC uses WebSockets (Upgrade) which require HTTP/1.1 upstream.
+      # Disabling HTTP/2 avoids upgrade issues/hangs/502 when Traefik negotiates h2.
+      disableHTTP2: true

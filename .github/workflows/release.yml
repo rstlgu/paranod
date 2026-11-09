@@ -1,0 +1,138 @@
+name: Release
+on:
+  push:
+    tags: ['v*.*.*']
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  verify:
+    uses: ./.github/workflows/ci.yml
+  prepare:
+    needs: verify
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - id: version
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          test "$GITHUB_REF_TYPE" = tag
+          PARANOD_VERSION=$(node -p 'require("./package.json").version')
+          test "$GITHUB_REF_NAME" = "v$PARANOD_VERSION"
+          [[ "$GITHUB_REF_NAME" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]
+          echo "version=$PARANOD_VERSION" >> "$GITHUB_OUTPUT"
+          if gh release view "$GITHUB_REF_NAME" --json isDraft --jq .isDraft > /tmp/paranod-release-state; then
+            test "$(cat /tmp/paranod-release-state)" = true
+          else
+            gh release create "$GITHUB_REF_NAME" --verify-tag --draft               --title "Paranod $PARANOD_VERSION" --notes-file "docs/releases/$GITHUB_REF_NAME.md"
+          fi
+  images:
+    needs: prepare
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: amd64
+            runner: ubuntu-24.04
+          - arch: arm64
+            runner: ubuntu-24.04-arm
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 45
+    permissions:
+      contents: write
+    env:
+      PARANOD_VERSION: ${{ needs.prepare.outputs.version }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
+      - name: Build application and agent image
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
+        with:
+          context: .
+          load: true
+          platforms: linux/${{ matrix.arch }}
+          tags: paranod-app:${{ env.PARANOD_VERSION }}
+          labels: |
+            org.opencontainers.image.source=https://github.com/rstlgu/paranod
+            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.version=${{ env.PARANOD_VERSION }}
+            org.opencontainers.image.licenses=AGPL-3.0-only
+          cache-from: type=gha,scope=app-${{ matrix.arch }}
+          cache-to: type=gha,mode=min,scope=app-${{ matrix.arch }}
+      - name: Build container runner
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
+        with:
+          context: .
+          file: services/container-runner/Dockerfile
+          load: true
+          platforms: linux/${{ matrix.arch }}
+          tags: paranod-container-runner:${{ env.PARANOD_VERSION }}
+          labels: |
+            org.opencontainers.image.source=https://github.com/rstlgu/paranod
+            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.version=${{ env.PARANOD_VERSION }}
+            org.opencontainers.image.licenses=AGPL-3.0-only
+          cache-from: type=gha,scope=runner-${{ matrix.arch }}
+          cache-to: type=gha,mode=min,scope=runner-${{ matrix.arch }}
+      - name: Build reverse proxy
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
+        with:
+          context: docker/traefik
+          load: true
+          platforms: linux/${{ matrix.arch }}
+          tags: paranod-traefik:${{ env.PARANOD_VERSION }}
+          labels: |
+            org.opencontainers.image.source=https://github.com/rstlgu/paranod
+            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.version=${{ env.PARANOD_VERSION }}
+      - name: Verify fresh install and backup restore on the native architecture
+        run: |
+          docker context show
+          docker info --format '{{.Name}} {{.OSType}} {{.Architecture}}'
+          PARANOD_TEST_DOCKER_CONTEXT=$(docker context show) python3 scripts/smoke-release.py "$PARANOD_VERSION"
+      - name: Package and upload prebuilt images
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PARANOD_ARCH: ${{ matrix.arch }}
+        run: |
+          mkdir -p artifacts
+          PARANOD_ASSET="paranod-images-v$PARANOD_VERSION-linux-$PARANOD_ARCH.tar.gz"
+          docker save "paranod-app:$PARANOD_VERSION" "paranod-container-runner:$PARANOD_VERSION" "paranod-traefik:$PARANOD_VERSION" | gzip > "artifacts/$PARANOD_ASSET"
+          test "$(stat -c %s "artifacts/$PARANOD_ASSET")" -lt 2000000000
+          (cd artifacts && sha256sum "$PARANOD_ASSET" > "$PARANOD_ASSET.sha256")
+          test "$(gh release view "$GITHUB_REF_NAME" --json isDraft --jq .isDraft)" = true
+          gh release upload "$GITHUB_REF_NAME" "artifacts/$PARANOD_ASSET" "artifacts/$PARANOD_ASSET.sha256" --clobber
+  publish:
+    needs: [prepare, images]
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      PARANOD_VERSION: ${{ needs.prepare.outputs.version }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: Assemble deployment bundle and publish the verified release
+        run: |
+          mkdir -p artifacts bundle/docker bundle/docs
+          gh release download "$GITHUB_REF_NAME" --pattern '*.sha256' --dir artifacts
+          test "$(find artifacts -name '*.sha256' | wc -l)" -eq 2
+          cat artifacts/*.sha256 > artifacts/SHA256SUMS
+          cp compose.release.yml .env.docker.example LICENSE THIRD_PARTY_NOTICES.md bundle/
+          cp docker/release.sh docker/load-release.sh bundle/docker/
+          cp docs/INSTALL.md bundle/README.md
+          cp docs/OPERATIONS.md docs/ADDON-WALKTHROUGH.md docs/LICENSING.md bundle/docs/
+          tar -czf "artifacts/paranod-deploy-v$PARANOD_VERSION.tar.gz" -C bundle .
+          (cd artifacts && sha256sum "paranod-deploy-v$PARANOD_VERSION.tar.gz" >> SHA256SUMS)
+          git archive --format=tar.gz --prefix="paranod-v$PARANOD_VERSION/" HEAD > "artifacts/paranod-source-v$PARANOD_VERSION.tar.gz"
+          (cd artifacts && sha256sum "paranod-source-v$PARANOD_VERSION.tar.gz" >> SHA256SUMS)
+          gh release upload "$GITHUB_REF_NAME" "artifacts/paranod-deploy-v$PARANOD_VERSION.tar.gz" "artifacts/paranod-source-v$PARANOD_VERSION.tar.gz" artifacts/SHA256SUMS --clobber
+          gh release edit "$GITHUB_REF_NAME" --draft=false --latest

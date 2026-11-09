@@ -1,0 +1,56 @@
+# Dependencies and generated output
+node_modules
+**/node_modules
+.next
+.turbo
+.cache
+output
+dist
+build
+out
+coverage
+test-results
+playwright-report
+*.tsbuildinfo
+*.log
+
+# Source-control, editor and local agent state
+.git
+.vercel
+.idea
+.vscode
+.claude
+.codex
+.cursorrules
+memory-bank
+.playwright-cli
+.DS_Store
+**/.DS_Store
+
+# Local configuration, private keys, backups and Git history exports
+.env
+.env.*
+**/.env
+**/.env.*
+*.pem
+**/*.pem
+*.key
+**/*.key
+*.p12
+**/*.p12
+*.pfx
+**/*.pfx
+*.bundle
+**/*.bundle
+*.dump
+**/*.dump
+*.backup
+**/*.backup
+*.sql.gz
+**/*.sql.gz
+
+# Uploaded investigation data and local databases
+public/temp
+private/temp
+prisma/dev.db
+prisma/dev.db-journal
