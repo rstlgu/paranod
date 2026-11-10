@@ -6,6 +6,7 @@ import * as ResizablePrimitive from 'react-resizable-panels';
 import type { ImperativePanelHandle } from 'react-resizable-panels';
 
 import { cn } from '@/lib/utils';
+import styles from './resizable.module.css';
 
 function ResizablePanelGroup({
   className,
@@ -16,6 +17,7 @@ function ResizablePanelGroup({
       data-slot='resizable-panel-group'
       className={cn(
         'flex h-full w-full data-[panel-group-direction=vertical]:flex-col',
+        styles.group,
         className
       )}
       {...props}

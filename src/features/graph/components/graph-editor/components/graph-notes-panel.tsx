@@ -7,7 +7,7 @@ import {
 } from '@/hooks/use-floating-panel';
 import dynamic from 'next/dynamic';
 import { createPortal } from 'react-dom';
-import { AnimatePresence, motion } from 'framer-motion';
+import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import type { Node } from 'reactflow';
 import { toast } from 'sonner';
 import {
@@ -61,6 +61,7 @@ interface GraphNotesPanelProps {
   isNotesPanelOpen: boolean;
   isDetached: boolean;
   isActive?: boolean;
+  retainDockedSurface?: boolean;
   detachNotesPanel: () => void;
   attachNotesPanel: () => void;
   closeNotesPanel: () => void;
@@ -166,11 +167,13 @@ export function GraphNotesPanel({
   isNotesPanelOpen,
   isDetached,
   isActive = true,
+  retainDockedSurface = false,
   detachNotesPanel,
   attachNotesPanel,
   closeNotesPanel,
   onSelectNodeId
 }: GraphNotesPanelProps) {
+  const reduceMotion = useReducedMotion();
   const openTab = useWorkspaceTabsStore((state) => state.openTab);
   const writeGuard = useGraphWriteGuard(graphId);
   const canEdit = useGraphCanEdit();
@@ -781,16 +784,21 @@ export function GraphNotesPanel({
             ref={floatingBoundsRef}
             className='pointer-events-none fixed inset-x-2 top-12 bottom-9'
             style={{ zIndex: floatingZIndex }}
+            inert={!isNotesPanelOpen}
+            aria-hidden={!isNotesPanelOpen}
             onPointerDownCapture={bringToFront}
             onFocusCapture={bringToFront}
           >
             <AnimatePresence initial={false}>
               {isNotesPanelOpen ? (
                 <motion.div
-                  initial={{ opacity: 0, scale: 0.985 }}
+                  initial={{ opacity: 0, scale: reduceMotion ? 1 : 0.985 }}
                   animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.985 }}
-                  transition={{ duration: 0.18, ease: 'easeOut' }}
+                  exit={{ opacity: 0, scale: reduceMotion ? 1 : 0.985 }}
+                  transition={{
+                    duration: reduceMotion ? 0 : 0.18,
+                    ease: 'easeOut'
+                  }}
                   style={{
                     left: floatingRect.x,
                     top: floatingRect.y,
@@ -827,5 +835,7 @@ export function GraphNotesPanel({
 
   if (isDetached) return floatingNotes;
 
-  return isNotesPanelOpen ? notesSurface : null;
+  // The parent clips the closing surface and immediately makes it inert.
+  // Keeping it mounted prevents an empty panel during the width transition.
+  return isNotesPanelOpen || retainDockedSurface ? notesSurface : null;
 }

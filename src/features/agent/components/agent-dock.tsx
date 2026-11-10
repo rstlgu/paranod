@@ -570,55 +570,63 @@ export function AgentDock({ children }: { children: React.ReactNode }) {
           ) : null}
         </AnimatePresence>
       )}
-      {floating && graph && typeof document !== 'undefined'
+      {!mobile && graph && typeof document !== 'undefined'
         ? createPortal(
             <div
               ref={floatingBoundsRef}
               className='pointer-events-none fixed inset-x-2 top-12 bottom-9'
               style={{ zIndex: floatingZIndex }}
+              inert={!floating}
+              aria-hidden={!floating}
               onPointerDownCapture={bringToFront}
               onFocusCapture={bringToFront}
             >
-              <motion.div
-                aria-label='Floating agent window'
-                initial={{ opacity: 0, scale: reduceMotion ? 1 : 0.985 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{
-                  duration: reduceMotion ? 0 : 0.18,
-                  ease: 'easeOut'
-                }}
-                style={{
-                  left: floatingRect.x,
-                  top: floatingRect.y,
-                  width: floatingRect.width,
-                  height: floatingRect.height
-                }}
-                className='border-border/70 bg-background pointer-events-auto absolute overflow-hidden rounded-xl border shadow-[0_4px_16px_rgba(0,0,0,0.16)] dark:border-white/12 dark:shadow-[0_5px_18px_rgba(0,0,0,0.24)]'
-              >
-                <ConnectedPanel
-                  key={graph.id}
-                  graph={graph}
-                  detached
-                  onToggleDetached={() => setDetached(false)}
-                  onHeaderPointerDown={(event) =>
-                    beginFloatingInteraction(event)
-                  }
-                />
-                {FLOATING_RESIZE_HANDLES.map((handle) => (
-                  <div
-                    key={handle.key}
-                    aria-hidden='true'
-                    className={`absolute z-30 touch-none bg-transparent ${handle.className}`}
-                    onPointerDown={(event) =>
-                      beginFloatingInteraction(
-                        event,
-                        handle.edges,
-                        handle.cursor
-                      )
-                    }
-                  />
-                ))}
-              </motion.div>
+              <AnimatePresence initial={false}>
+                {floating ? (
+                  <motion.div
+                    key='floating-agent'
+                    aria-label='Floating agent window'
+                    initial={{ opacity: 0, scale: reduceMotion ? 1 : 0.985 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: reduceMotion ? 1 : 0.985 }}
+                    transition={{
+                      duration: reduceMotion ? 0 : 0.18,
+                      ease: 'easeOut'
+                    }}
+                    style={{
+                      left: floatingRect.x,
+                      top: floatingRect.y,
+                      width: floatingRect.width,
+                      height: floatingRect.height
+                    }}
+                    className='border-border/70 bg-background pointer-events-auto absolute overflow-hidden rounded-xl border shadow-[0_4px_16px_rgba(0,0,0,0.16)] dark:border-white/12 dark:shadow-[0_5px_18px_rgba(0,0,0,0.24)]'
+                  >
+                    <ConnectedPanel
+                      key={graph.id}
+                      graph={graph}
+                      detached
+                      onToggleDetached={() => setDetached(false)}
+                      onHeaderPointerDown={(event) =>
+                        beginFloatingInteraction(event)
+                      }
+                    />
+                    {FLOATING_RESIZE_HANDLES.map((handle) => (
+                      <div
+                        key={handle.key}
+                        aria-hidden='true'
+                        className={`absolute z-30 touch-none bg-transparent ${handle.className}`}
+                        onPointerDown={(event) =>
+                          beginFloatingInteraction(
+                            event,
+                            handle.edges,
+                            handle.cursor
+                          )
+                        }
+                      />
+                    ))}
+                  </motion.div>
+                ) : null}
+              </AnimatePresence>
             </div>,
             document.body
           )

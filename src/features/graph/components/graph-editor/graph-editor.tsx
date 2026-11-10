@@ -5907,6 +5907,7 @@ export function GraphEditor({
                       isNotesPanelOpen={isNotesPanelOpen}
                       isDetached={isNotesPanelDetached}
                       isActive={tabIsActive}
+                      retainDockedSurface={retainedRightPanel === 'notes'}
                       detachNotesPanel={detachNotesPanel}
                       attachNotesPanel={attachNotesPanel}
                       closeNotesPanel={closeNotesPanel}
