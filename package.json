@@ -1,6 +1,6 @@
 {
   "name": "paranod",
-  "version": "2.3.1",
+  "version": "2.3.2",
   "private": true,
   "description": "Open-source, self-hosted OSINT framework with a visual graph, modular tools and an AI agent.",
   "author": {

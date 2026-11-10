@@ -16,7 +16,7 @@ Provider accounts and API keys belong to the administrator of the installation. 
 
 ## Install a prebuilt release
 
-Download the [Paranod 2.3.1 release](https://github.com/rstlgu/paranod/releases/tag/v2.3.1) and follow the [installation guide](docs/INSTALL.md). It includes checksum-verified Docker images for Linux amd64 and arm64, plus a deployment bundle. No local compilation or GitHub login is required. Use [operations](docs/OPERATIONS.md) for updates, backup and restore, and the [addon walkthrough](docs/ADDON-WALKTHROUGH.md) to connect a working polling addon.
+Download the [Paranod 2.3.2 release](https://github.com/rstlgu/paranod/releases/tag/v2.3.2) and follow the [installation guide](docs/INSTALL.md). It includes checksum-verified Docker images for Linux amd64 and arm64, plus a deployment bundle. No local compilation or GitHub login is required. Use [operations](docs/OPERATIONS.md) for updates, backup and restore, and the [addon walkthrough](docs/ADDON-WALKTHROUGH.md) to connect a working polling addon.
 
 ## Build from source with Docker
 

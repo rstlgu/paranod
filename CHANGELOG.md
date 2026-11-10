@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.3.2 — 2026-11-10
+
+- Restore coordinated opening and closing animations for graph and flow panels while preserving concurrent panel state.
+- Keep splitter dragging immediate and respect reduced-motion preferences.
+- Retain docked note content while closing and animate floating agent window dismissal.
+
 ## 2.3.1 — 2026-11-10
 
 - Fix concurrent side panels, notes, floating agent windows and console toggles.

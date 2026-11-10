@@ -15,7 +15,7 @@ import tempfile
 import time
 
 root = Path(__file__).resolve().parent.parent
-version = sys.argv[1] if len(sys.argv) > 1 else '2.3.1'
+version = sys.argv[1] if len(sys.argv) > 1 else '2.3.2'
 context = os.environ.get('PARANOD_TEST_DOCKER_CONTEXT')
 if not context:
     raise SystemExit('Set PARANOD_TEST_DOCKER_CONTEXT to a verified test daemon.')

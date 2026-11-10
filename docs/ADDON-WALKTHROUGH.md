@@ -52,4 +52,4 @@ Keep public addon endpoints on HTTPS. Older callback-only addons require a reach
 - Pending job after addon restart: completed results survive with persistent storage; interrupted handlers are not automatically re-executed. Wait for the platform timeout and review the provider operation before retrying.
 - Manual execution works but agent cannot discover the action: check that the addon is enabled, the selected graph entity has the advertised input type, the worker is healthy and a model provider is configured.
 
-See [protocol and security](https://github.com/rstlgu/paranod/blob/v2.3.1/docs/ADDON-SECURITY-AND-PUBLISHING.md) for validation rules, limits and legacy compatibility.
+See [protocol and security](https://github.com/rstlgu/paranod/blob/v2.3.2/docs/ADDON-SECURITY-AND-PUBLISHING.md) for validation rules, limits and legacy compatibility.
