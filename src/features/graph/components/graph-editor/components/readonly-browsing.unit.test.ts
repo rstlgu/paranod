@@ -59,6 +59,7 @@ vi.mock('react-dom', () => ({ createPortal: (children: unknown) => children }));
 vi.mock('next/dynamic', () => ({ default: () => 'GraphNotesEditor' }));
 vi.mock('framer-motion', () => ({
   AnimatePresence: 'AnimatePresence',
+  useReducedMotion: () => false,
   motion: { div: 'div' }
 }));
 vi.mock('@/components/icons', async (importOriginal) =>
