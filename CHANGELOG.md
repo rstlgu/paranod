@@ -1,6 +1,11 @@
 # Changelog
 
-## 2.3.2 — 2026-11-10
+## 2.3.3 — 2026-11-10
+
+- Publish the panel animation fixes with the complete read-only browsing test suite aligned to reduced-motion support.
+- No database or runtime behavior changes beyond the panel fixes listed below. The 2.3.2 candidate was not published because its release checks detected the outdated test mock.
+
+## 2.3.2 — unpublished candidate
 
 - Restore coordinated opening and closing animations for graph and flow panels while preserving concurrent panel state.
 - Keep splitter dragging immediate and respect reduced-motion preferences.

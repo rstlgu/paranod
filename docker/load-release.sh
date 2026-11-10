@@ -1,7 +1,7 @@
 #!/bin/sh
 # Download verified release images for the selected Linux Docker daemon.
 set -eu
-PARANOD_TAG="${1:-v2.3.2}"
+PARANOD_TAG="${1:-v2.3.3}"
 if ! printf '%s\n' "$PARANOD_TAG" | LC_ALL=C grep -Eq '^v[0-9]+\.[0-9]+\.[0-9]+$'; then
   echo "Usage: $0 vMAJOR.MINOR.PATCH" >&2
   exit 1
