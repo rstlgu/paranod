@@ -1,6 +1,12 @@
 'use client';
 
 import * as React from 'react';
+import { create } from 'zustand';
+
+const useFloatingFocus = create<{ active: string | null }>(() => ({
+  active: null
+}));
+let cancelFloatingInteraction: (() => void) | null = null;
 
 const MIN_FLOATING_WIDTH = 360;
 const MIN_FLOATING_HEIGHT = 280;
@@ -111,6 +117,11 @@ export function useFloatingPanel({
   width?: number;
   height?: number;
 }) {
+  const id = React.useId();
+  const active = useFloatingFocus((state) => state.active === id);
+  const bringToFront = React.useCallback(() => {
+    useFloatingFocus.setState({ active: id });
+  }, [id]);
   const floatingBoundsRef = React.useRef<HTMLDivElement | null>(null);
   const floatingPositionInitializedRef = React.useRef(false);
   const floatingInteractionCleanupRef = React.useRef<(() => void) | null>(null);
@@ -122,17 +133,21 @@ export function useFloatingPanel({
   });
 
   React.useEffect(() => {
-    if (!isDetached) return;
+    if (!isDetached) {
+      floatingInteractionCleanupRef.current?.();
+      return;
+    }
+    bringToFront();
 
     const fitToBounds = () => {
       const bounds = floatingBoundsRef.current?.getBoundingClientRect();
       if (!bounds || bounds.width <= 0 || bounds.height <= 0) return;
 
+      const initialize = !floatingPositionInitializedRef.current;
+      floatingPositionInitializedRef.current = true;
       setFloatingRect((current) => {
         const fitted = fitFloatingRect(current, bounds.width, bounds.height);
-        if (floatingPositionInitializedRef.current) return fitted;
-
-        floatingPositionInitializedRef.current = true;
+        if (!initialize) return fitted;
         return {
           ...fitted,
           x:
@@ -145,12 +160,16 @@ export function useFloatingPanel({
     };
 
     const frame = window.requestAnimationFrame(fitToBounds);
+    const observer = new ResizeObserver(fitToBounds);
+    if (floatingBoundsRef.current) observer.observe(floatingBoundsRef.current);
     window.addEventListener('resize', fitToBounds);
     return () => {
       window.cancelAnimationFrame(frame);
+      observer.disconnect();
       window.removeEventListener('resize', fitToBounds);
+      floatingInteractionCleanupRef.current?.();
     };
-  }, [isDetached, align]);
+  }, [isDetached, align, bringToFront]);
 
   React.useEffect(() => () => floatingInteractionCleanupRef.current?.(), []);
 
@@ -178,7 +197,7 @@ export function useFloatingPanel({
 
       event.preventDefault();
       event.stopPropagation();
-      floatingInteractionCleanupRef.current?.();
+      cancelFloatingInteraction?.();
 
       const pointerId = event.pointerId;
       const originX = event.clientX;
@@ -270,22 +289,34 @@ export function useFloatingPanel({
         window.removeEventListener('pointermove', handlePointerMove);
         window.removeEventListener('pointerup', handlePointerEnd);
         window.removeEventListener('pointercancel', handlePointerEnd);
+        window.removeEventListener('blur', cleanup);
         document.body.style.userSelect = previousUserSelect;
         document.body.style.cursor = previousCursor;
         if (floatingInteractionCleanupRef.current === cleanup) {
           floatingInteractionCleanupRef.current = null;
         }
+        if (cancelFloatingInteraction === cleanup)
+          cancelFloatingInteraction = null;
       };
 
       floatingInteractionCleanupRef.current = cleanup;
+      cancelFloatingInteraction = cleanup;
       window.addEventListener('pointermove', handlePointerMove, {
         passive: false
       });
       window.addEventListener('pointerup', handlePointerEnd);
       window.addEventListener('pointercancel', handlePointerEnd);
+      window.addEventListener('blur', cleanup);
     },
     [floatingRect, isDetached]
   );
 
-  return { floatingBoundsRef, floatingRect, beginFloatingInteraction };
+  return {
+    floatingBoundsRef,
+    floatingRect,
+    beginFloatingInteraction,
+    bringToFront,
+    // Floating windows stay below dialogs/popovers (z-50).
+    floatingZIndex: active ? 41 : 40
+  };
 }

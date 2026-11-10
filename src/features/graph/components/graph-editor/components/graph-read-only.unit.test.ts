@@ -157,8 +157,8 @@ function topbarProps(): ComponentProps<typeof GraphTopbar> {
 }
 function sidebarProps(): ComponentProps<typeof GraphSidebar> {
   return {
-    isReadOnly: true, sidebarPanelRef: { current: null }, lastOpenSidebarSizeRef: { current: 20 },
-    sidebarStateFromResizeRef: { current: false }, isSidebarOpen: true, setIsSidebarOpen: vi.fn(),
+    isReadOnly: true, lastOpenSidebarSizeRef: { current: 20 },
+    isSidebarOpen: true, setIsSidebarOpen: vi.fn(),
     sidebarCollapsedSizePct: 0, sidebarMinSizePct: 15, sidebarMaxSizePct: 30,
     sidebarTab: 'entities', setSidebarTab: vi.fn(), toggleSidebar: vi.fn(),
     sidebarSearchQuery: '', setSidebarSearchQuery: vi.fn(), sidebarSearchInputRef: { current: null },
@@ -177,9 +177,7 @@ function sidebarProps(): ComponentProps<typeof GraphSidebar> {
 }
 function detailsProps(): ComponentProps<typeof GraphDetailsPanel> {
   return {
-    isReadOnly: true, detailsPanelRef: { current: null }, lastOpenDetailsSizeRef: { current: 20 },
-    detailsStateFromResizeRef: { current: false }, isDetailsPanelOpen: true, setIsDetailsPanelOpen: vi.fn(),
-    detailsCollapsedSizePct: 0, detailsMinSizePct: 15, detailsMaxSizePct: 30,
+    isReadOnly: true,
     closeDetailsPanel: vi.fn(), isDark: false, graphViewMode: 'free',
     nodes: [
       { id: 'a', position: { x: 0, y: 0 }, selected: true, data: { type: 'domain', label: 'example.org', metadata: { owner: 'Alice' } } },

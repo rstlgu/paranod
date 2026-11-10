@@ -1,5 +1,14 @@
 # Changelog
 
+## 2.3.1 — 2026-11-10
+
+- Fix concurrent side panels, notes, floating agent windows and console toggles.
+- Preserve active-tab controls and notes across graph switches.
+- Restore drag-to-open in the console and flow sidebar, and correct flow resize ordering.
+- Keep toolbar commands reachable on narrow screens and closed panels out of keyboard interaction.
+- Add regression coverage for concurrent layouts, resize gestures and floating-window cleanup.
+- No database schema changes.
+
 ## 2.3.0 — 2026-11-09
 
 Initial release of this clean-history AGPL repository.

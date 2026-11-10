@@ -6,7 +6,8 @@ import {
   useRef,
   useEffect,
   useMemo,
-  useId
+  useId,
+  useReducer
 } from 'react';
 import dynamic from 'next/dynamic';
 import { useSaveStatus } from '@/contexts/save-status-context';
@@ -112,7 +113,12 @@ import {
   ResizablePanel,
   ResizablePanelGroup
 } from '@/components/ui/resizable';
-import type { ImperativePanelHandle } from 'react-resizable-panels';
+import { ControlledResizablePanel } from '@/components/ui/controlled-resizable-panel';
+import {
+  graphPanelReducer,
+  graphPanelSizes,
+  initialGraphPanels
+} from '@/features/graph/lib/panel-layout';
 import {
   Node as FlowNode,
   Edge,
@@ -550,7 +556,25 @@ export function GraphEditor({
   );
   const [showMiniMap, setShowMiniMap] = useState(true);
   const [mounted, setMounted] = useState(false);
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [panels, dispatchPanel] = useReducer(graphPanelReducer, initialGraphPanels);
+  const {
+    sidebar: isSidebarOpen,
+    details: isDetailsPanelOpen,
+    notes: isNotesPanelOpen,
+    notesDetached: isNotesPanelDetached,
+    retainedRight: retainedRightPanel,
+    bottomTab: bottomDockTab,
+    bottomExpanded: isBottomDockExpanded
+  } = panels;
+  const setIsSidebarOpen = useCallback(
+    (open: boolean | ((current: boolean) => boolean)) =>
+      dispatchPanel({ type: 'sidebar', open }),
+    []
+  );
+  const setIsBottomDockExpanded = useCallback(
+    (open: boolean) => dispatchPanel({ type: 'bottom', open }),
+    []
+  );
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
   const sidebarSearchInputRef = useRef<HTMLInputElement | null>(null);
   const nodeRowElByIdRef = useRef(new Map<string, HTMLElement>());
@@ -562,13 +586,10 @@ export function GraphEditor({
   const entitiesLastAlignedLevelRef = useRef<number | null>(null);
   const [shouldFocusSidebarSearch, setShouldFocusSidebarSearch] = useState(false);
   const [sidebarSearchQuery, setSidebarSearchQuery] = useState('');
-  const sidebarPanelRef = useRef<ImperativePanelHandle | null>(null);
   const lastOpenSidebarSizeRef = useRef(28); // percent
   const [panelGroupWidthPx, setPanelGroupWidthPx] = useState<number | null>(null);
   const panelGroupElRef = useRef<HTMLDivElement | null>(null);
-  const sidebarStateFromResizeRef = useRef(false);
 
-  const [isDetailsPanelOpen, setIsDetailsPanelOpen] = useState(false);
   const shouldAutoOpenDetailsPanelRef = useRef(false);
   const pendingAutoOpenDetailsTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const hasSelectionRef = useRef(false);
@@ -576,53 +597,18 @@ export function GraphEditor({
   const selectedEdgeIdRef = useRef<string | null>(null);
   const lastAnalysisClickRef = useRef<{ ts: number; nodeId: string | null }>({ ts: 0, nodeId: null });
   const pendingAnalysisCenterTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const detailsPanelRef = useRef<ImperativePanelHandle | null>(null);
-  const lastOpenDetailsSizeRef = useRef(26);
-  const detailsStateFromResizeRef = useRef(false);
-  const [isNotesPanelOpen, setIsNotesPanelOpen] = useState(false);
-  const [isNotesPanelDetached, setIsNotesPanelDetached] = useState(false);
-  const [retainedRightPanel, setRetainedRightPanel] = useState<
-    'details' | 'notes'
-  >('details');
-  const notesPanelRef = useRef<ImperativePanelHandle | null>(null);
-  const lastOpenNotesSizeRef = useRef(26);
-  const notesStateFromResizeRef = useRef(false);
-
-  const sidebarMinWidthPx = 400; // più ampio del precedente
-  const sidebarMaxWidthPx = 860;
-
-  const detailsMinWidthPx = 360;
-  const detailsMaxWidthPx = 720;
+  const lastOpenRightSizeRef = useRef(26);
   const sidebarCollapsedSizePct = 0;
-  const detailsCollapsedSizePct = 0;
-  const notesCollapsedSizePct = 0;
-
-  const sidebarMinSizePct = useMemo(() => {
-    if (!panelGroupWidthPx) return 20;
-    return clampNumber(pxToPercent(sidebarMinWidthPx, panelGroupWidthPx), 10, 60);
-  }, [panelGroupWidthPx]);
-
-  const sidebarMaxSizePct = useMemo(() => {
-    if (!panelGroupWidthPx) return 55;
-    return clampNumber(pxToPercent(sidebarMaxWidthPx, panelGroupWidthPx), 20, 80);
-  }, [panelGroupWidthPx]);
-
-  const detailsMinSizePct = useMemo(() => {
-    if (!panelGroupWidthPx) return 18;
-    return clampNumber(pxToPercent(detailsMinWidthPx, panelGroupWidthPx), 10, 60);
-  }, [panelGroupWidthPx]);
-
-  const detailsMaxSizePct = useMemo(() => {
-    if (!panelGroupWidthPx) return 45;
-    return clampNumber(pxToPercent(detailsMaxWidthPx, panelGroupWidthPx), 20, 80);
-  }, [panelGroupWidthPx]);
-  const notesMinSizePct = detailsMinSizePct;
-  const notesMaxSizePct = detailsMaxSizePct;
-  const [bottomDockTab, setBottomDockTab] = useState<'console' | 'activity'>(
-    'console'
-  );
-  const [isBottomDockExpanded, setIsBottomDockExpanded] = useState(false);
-  const bottomDockPanelRef = useRef<ImperativePanelHandle | null>(null);
+  const {
+    sidebarMin: sidebarMinSizePct,
+    sidebarMax: sidebarMaxSizePct,
+    rightMin: rightMinSizePct,
+    rightMax: rightMaxSizePct,
+    canvasMin: canvasMinSizePct
+  } = graphPanelSizes(panelGroupWidthPx);
+  const isRightPanelOpen =
+    isDetailsPanelOpen || (isNotesPanelOpen && !isNotesPanelDetached);
+  const [isBottomDockResizing, setIsBottomDockResizing] = useState(false);
   const lastOpenBottomDockSizeRef = useRef(28); // percent (altezza)
   const [bottomGroupHeightPx, setBottomGroupHeightPx] = useState<number | null>(null);
   const bottomGroupElRef = useRef<HTMLDivElement | null>(null);
@@ -643,7 +629,7 @@ export function GraphEditor({
 
   const bottomMaxSizePct = useMemo(() => {
     if (!bottomGroupHeightPx) return 70;
-    return clampNumber(pxToPercent(bottomMaxHeightPx, bottomGroupHeightPx), 20, 95);
+    return clampNumber(pxToPercent(bottomMaxHeightPx, bottomGroupHeightPx), 20, 80);
   }, [bottomGroupHeightPx]);
   const [consoleClearSignal, setConsoleClearSignal] = useState(0);
   const [sidebarTab, setSidebarTab] = useState<'entities' | 'add'>(
@@ -780,11 +766,9 @@ export function GraphEditor({
     if (panel.open && !panel.detached) panel.setOpen(false);
   }, []);
   const toggleSidebar = useCallback(() => {
-    setIsSidebarOpen((open) => {
-      if (!open) closeDockedAgentPanel();
-      return !open;
-    });
-  }, [closeDockedAgentPanel]);
+    if (!isSidebarOpen) closeDockedAgentPanel();
+    setIsSidebarOpen((open) => !open);
+  }, [closeDockedAgentPanel, isSidebarOpen, setIsSidebarOpen]);
 
   const agentPanelOpen = useAgentPanelStore((state) => state.open);
   const agentDetached = useAgentPanelStore((state) => state.detached);
@@ -811,6 +795,7 @@ export function GraphEditor({
     agentPanelOpen,
     closeDockedAgentPanel,
     isSidebarOpen,
+    setIsSidebarOpen,
     tabIsActive
   ]);
 
@@ -819,173 +804,69 @@ export function GraphEditor({
     setSidebarTab('entities');
     setIsSidebarOpen(true);
     setShouldFocusSidebarSearch(true);
-  }, [closeDockedAgentPanel]);
+  }, [closeDockedAgentPanel, setIsSidebarOpen]);
 
   const openSidebarAdd = useCallback(() => {
     closeDockedAgentPanel();
     setSidebarTab('add');
     setIsSidebarOpen(true);
     setShouldFocusSidebarSearch(true);
-  }, [closeDockedAgentPanel]);
+  }, [closeDockedAgentPanel, setIsSidebarOpen]);
 
+  const cancelPendingDetailsOpen = useCallback(() => {
+    shouldAutoOpenDetailsPanelRef.current = false;
+    if (pendingAutoOpenDetailsTimerRef.current) {
+      clearTimeout(pendingAutoOpenDetailsTimerRef.current);
+      pendingAutoOpenDetailsTimerRef.current = null;
+    }
+  }, []);
   const openDetailsPanel = useCallback(() => {
-    detailsStateFromResizeRef.current = false;
-    setRetainedRightPanel('details');
-    if (!isNotesPanelDetached) setIsNotesPanelOpen(false);
-    setIsDetailsPanelOpen(true);
-  }, [isNotesPanelDetached]);
-
+    cancelPendingDetailsOpen();
+    dispatchPanel({ type: 'details', open: true });
+  }, [cancelPendingDetailsOpen]);
   const closeDetailsPanel = useCallback(() => {
-    detailsStateFromResizeRef.current = true;
-    (
-      detailsPanelRef.current as unknown as { collapse?: () => void }
-    )?.collapse?.();
-    detailsPanelRef.current?.resize(detailsCollapsedSizePct);
-    setIsDetailsPanelOpen(false);
-    if (!isNotesPanelDetached) setIsNotesPanelOpen(false);
-  }, [detailsCollapsedSizePct, isNotesPanelDetached]);
-
+    cancelPendingDetailsOpen();
+    dispatchPanel({ type: 'details', open: false });
+  }, [cancelPendingDetailsOpen]);
   const toggleDetailsPanel = useCallback(() => {
-    if (isDetailsPanelOpen) {
-      closeDetailsPanel();
-      return;
-    }
-    setRetainedRightPanel('details');
-    if (!isNotesPanelDetached) setIsNotesPanelOpen(false);
-    setIsDetailsPanelOpen(true);
-  }, [closeDetailsPanel, isDetailsPanelOpen, isNotesPanelDetached]);
-
-  const closeNotesPanel = useCallback(() => {
-    setIsNotesPanelOpen(false);
-    if (!isNotesPanelDetached) setIsDetailsPanelOpen(false);
-  }, [isNotesPanelDetached]);
-
+    cancelPendingDetailsOpen();
+    dispatchPanel({ type: 'toggle-details' });
+  }, [cancelPendingDetailsOpen]);
+  const closeNotesPanel = useCallback(
+    () => dispatchPanel({ type: 'close-notes' }),
+    []
+  );
   const toggleNotesPanel = useCallback(() => {
-    if (isNotesPanelDetached) {
-      setRetainedRightPanel('details');
-      setIsNotesPanelOpen((current) => !current);
-      return;
-    }
-    setRetainedRightPanel('notes');
-    setIsDetailsPanelOpen(false);
-    setIsNotesPanelOpen((current) => !current);
-  }, [isNotesPanelDetached]);
-
+    cancelPendingDetailsOpen();
+    dispatchPanel({ type: 'toggle-notes' });
+  }, [cancelPendingDetailsOpen]);
   const detachNotesPanel = useCallback(() => {
-    notesStateFromResizeRef.current = true;
-    (notesPanelRef.current as unknown as { collapse?: () => void })?.collapse?.();
-    notesPanelRef.current?.resize(notesCollapsedSizePct);
-    setIsNotesPanelDetached(true);
-    setIsNotesPanelOpen(true);
-    setRetainedRightPanel('details');
-    setIsDetailsPanelOpen(false);
-  }, [notesCollapsedSizePct]);
-
+    cancelPendingDetailsOpen();
+    dispatchPanel({ type: 'detach-notes' });
+  }, [cancelPendingDetailsOpen]);
   const attachNotesPanel = useCallback(() => {
-    closeDetailsPanel();
-    notesStateFromResizeRef.current = false;
-    setIsNotesPanelDetached(false);
-    setRetainedRightPanel('notes');
-    setIsNotesPanelOpen(true);
-    requestAnimationFrame(() => {
-      notesPanelRef.current?.resize(lastOpenNotesSizeRef.current);
-      (
-        notesPanelRef.current as unknown as { expand?: () => void }
-      )?.expand?.();
-    });
-  }, [closeDetailsPanel]);
-
+    cancelPendingDetailsOpen();
+    dispatchPanel({ type: 'attach-notes' });
+  }, [cancelPendingDetailsOpen]);
   const toggleRightPanel = useCallback(() => {
-    if (isNotesPanelDetached) {
-      setRetainedRightPanel('details');
-      if (isDetailsPanelOpen) closeDetailsPanel();
-      else openDetailsPanel();
-      return;
-    }
-    if (isDetailsPanelOpen || isNotesPanelOpen) {
-      if (isDetailsPanelOpen) closeDetailsPanel();
-      else setIsNotesPanelOpen(false);
-      return;
-    }
-
-    if (retainedRightPanel === 'notes') {
-      setIsNotesPanelOpen(true);
-      return;
-    }
-    setIsDetailsPanelOpen(true);
-  }, [
-    closeDetailsPanel,
-    isDetailsPanelOpen,
-    isNotesPanelDetached,
-    isNotesPanelOpen,
-    openDetailsPanel,
-    retainedRightPanel
-  ]);
+    cancelPendingDetailsOpen();
+    dispatchPanel({ type: 'toggle-right' });
+  }, [cancelPendingDetailsOpen]);
+  const closeRightPanel = useCallback(() => {
+    cancelPendingDetailsOpen();
+    dispatchPanel({ type: 'close-right' });
+  }, [cancelPendingDetailsOpen]);
+  // Delayed selection actions must not reopen a hidden tab or an old view.
+  useEffect(
+    () => cancelPendingDetailsOpen,
+    [cancelPendingDetailsOpen, tabIsActive, graphViewMode]
+  );
 
   const setGraphPanelControls = useGraphPanelTogglesStore((s) => s.setControls);
 
   const openCommandPalette = useCallback(() => {
     setIsCommandPaletteOpen(true);
   }, []);
-
-  useEffect(() => {
-    if (tabIsActive || !isNotesPanelDetached) return;
-    setIsNotesPanelOpen(false);
-  }, [tabIsActive, isNotesPanelDetached]);
-
-  useEffect(() => {
-    if (!sidebarPanelRef.current) return;
-    if (sidebarStateFromResizeRef.current) {
-      sidebarStateFromResizeRef.current = false;
-      return;
-    }
-    requestAnimationFrame(() => {
-      if (!sidebarPanelRef.current) return;
-      if (isSidebarOpen) {
-        sidebarPanelRef.current.resize(lastOpenSidebarSizeRef.current);
-        (sidebarPanelRef.current as unknown as { expand?: () => void }).expand?.();
-      } else {
-        (sidebarPanelRef.current as unknown as { collapse?: () => void }).collapse?.();
-        sidebarPanelRef.current.resize(sidebarCollapsedSizePct);
-      }
-    });
-  }, [isSidebarOpen, sidebarCollapsedSizePct]);
-
-  useEffect(() => {
-    if (!detailsPanelRef.current) return;
-    if (detailsStateFromResizeRef.current) {
-      detailsStateFromResizeRef.current = false;
-      return;
-    }
-    requestAnimationFrame(() => {
-      if (!detailsPanelRef.current) return;
-      if (isDetailsPanelOpen) {
-        detailsPanelRef.current.resize(lastOpenDetailsSizeRef.current);
-        (detailsPanelRef.current as unknown as { expand?: () => void }).expand?.();
-      } else {
-        (detailsPanelRef.current as unknown as { collapse?: () => void }).collapse?.();
-        detailsPanelRef.current.resize(detailsCollapsedSizePct);
-      }
-    });
-  }, [isDetailsPanelOpen, detailsCollapsedSizePct]);
-
-  useEffect(() => {
-    if (!notesPanelRef.current) return;
-    if (notesStateFromResizeRef.current) {
-      notesStateFromResizeRef.current = false;
-      return;
-    }
-    requestAnimationFrame(() => {
-      if (!notesPanelRef.current) return;
-      if (isNotesPanelOpen && !isNotesPanelDetached) {
-        notesPanelRef.current.resize(lastOpenNotesSizeRef.current);
-        (notesPanelRef.current as unknown as { expand?: () => void }).expand?.();
-      } else {
-        (notesPanelRef.current as unknown as { collapse?: () => void }).collapse?.();
-        notesPanelRef.current.resize(notesCollapsedSizePct);
-      }
-    });
-  }, [isNotesPanelDetached, isNotesPanelOpen, notesCollapsedSizePct]);
 
   const graphNodeById = useMemo(() => {
     void graphNodeDataSignature;
@@ -1475,12 +1356,13 @@ export function GraphEditor({
   useEffect(() => {
     if (!shouldFocusSidebarSearch) return;
     if (!isSidebarOpen) return;
-    // focus after layout commit
-    requestAnimationFrame(() => {
+    if (!tabIsActive) return;
+    const frame = requestAnimationFrame(() => {
       sidebarSearchInputRef.current?.focus();
+      setShouldFocusSidebarSearch(false);
     });
-    setShouldFocusSidebarSearch(false);
-  }, [isSidebarOpen, shouldFocusSidebarSearch]);
+    return () => cancelAnimationFrame(frame);
+  }, [isSidebarOpen, shouldFocusSidebarSearch, tabIsActive]);
 
   useEffect(() => {
     const hasSelection = Boolean(selectedNode || selectedEdge);
@@ -1527,74 +1409,24 @@ export function GraphEditor({
     return () => ro.disconnect();
   }, []);
 
-  useEffect(() => {
-    if (!shouldFocusSidebarSearch) return;
-    if (!isSidebarOpen) return;
-    requestAnimationFrame(() => {
-      sidebarSearchInputRef.current?.focus();
-    });
-    setShouldFocusSidebarSearch(false);
-  }, [isSidebarOpen, shouldFocusSidebarSearch]);
-
   const handleBottomTabClick = useCallback((tab: 'console' | 'activity') => {
-    setBottomDockTab((prevTab) => {
-      // switching tabs should never compress the dock
-      if (prevTab === tab) {
-        setIsBottomDockExpanded((v) => {
-          const next = !v;
-          requestAnimationFrame(() => {
-            if (!bottomDockPanelRef.current) return;
-            bottomDockPanelRef.current.resize(
-              next ? lastOpenBottomDockSizeRef.current : bottomCollapsedSizePct
-            );
-            if (next)
-              (bottomDockPanelRef.current as unknown as { expand?: () => void }).expand?.();
-            else
-              (bottomDockPanelRef.current as unknown as { collapse?: () => void }).collapse?.();
-          });
-          return next;
-        });
-      } else {
-        setIsBottomDockExpanded(true);
-        requestAnimationFrame(() => {
-          if (!bottomDockPanelRef.current) return;
-          bottomDockPanelRef.current.resize(lastOpenBottomDockSizeRef.current);
-          (bottomDockPanelRef.current as unknown as { expand?: () => void }).expand?.();
-        });
-      }
-      return tab;
-    });
-  }, [bottomCollapsedSizePct]);
+    dispatchPanel({ type: 'toggle-bottom', tab });
+  }, []);
 
   useEffect(() => {
-    if (!tabIsActive) {
-      setGraphPanelControls(null);
-      return;
-    }
-
-    setGraphPanelControls({
+    if (!tabIsActive) return;
+    return setGraphPanelControls({
       isSidebarOpen,
-      isRightPanelOpen:
-        isDetailsPanelOpen ||
-        (isNotesPanelOpen && !isNotesPanelDetached),
+      isRightPanelOpen,
       isBottomDockExpanded,
       toggleSidebar,
       toggleRightPanel,
       toggleConsole: () => handleBottomTabClick('console')
     });
-
-    return () => setGraphPanelControls(null);
   }, [
-    handleBottomTabClick,
-    tabIsActive,
-    isBottomDockExpanded,
-    isDetailsPanelOpen,
-    isNotesPanelDetached,
-    isNotesPanelOpen,
-    isSidebarOpen,
-    setGraphPanelControls,
-    toggleRightPanel,
-    toggleSidebar
+    handleBottomTabClick, tabIsActive, isBottomDockExpanded,
+    isRightPanelOpen, isSidebarOpen, setGraphPanelControls,
+    toggleRightPanel, toggleSidebar
   ]);
 
   const requestConsoleClear = useCallback(() => {
@@ -3854,7 +3686,7 @@ export function GraphEditor({
       if (!hasSelectionRef.current) return;
       openDetailsPanel();
     }, 170);
-  }, [graphViewMode, tabIsActive, closeRelationalOverlays]);
+  }, [graphViewMode, tabIsActive, closeRelationalOverlays, openDetailsPanel]);
 
   const onFlowEdgeClick = useCallback((event: React.MouseEvent) => {
     if (!tabIsActive) return;
@@ -3882,7 +3714,7 @@ export function GraphEditor({
       if (!hasSelectionRef.current) return;
       openDetailsPanel();
     }, 170);
-  }, [graphViewMode, tabIsActive, closeRelationalOverlays]);
+  }, [graphViewMode, tabIsActive, closeRelationalOverlays, openDetailsPanel]);
 
   const clearRelationalSelection = useCallback(() => {
     selectNodes(() => false);
@@ -5515,9 +5347,8 @@ export function GraphEditor({
                 >
                   <GraphSidebar
                     isReadOnly={writeGuard.blocked}
-                    sidebarPanelRef={sidebarPanelRef}
                     lastOpenSidebarSizeRef={lastOpenSidebarSizeRef}
-                    sidebarStateFromResizeRef={sidebarStateFromResizeRef}
+
                     isSidebarOpen={isSidebarOpen}
                     setIsSidebarOpen={setIsSidebarOpen}
                     sidebarCollapsedSizePct={sidebarCollapsedSizePct}
@@ -5560,13 +5391,11 @@ export function GraphEditor({
                   />
 
                   <ResizablePanel
-                    defaultSize={
-                      100 -
-                      lastOpenSidebarSizeRef.current -
-                      lastOpenDetailsSizeRef.current
-                    }
-                    minSize={55}
-                    className='min-w-0 transition-[flex-grow,flex-basis] duration-200 ease-in-out'
+                    data-panel-kind='graph-canvas'
+                    order={2}
+                    defaultSize={100}
+                    minSize={canvasMinSizePct}
+                    className='min-w-0'
                   >
                     <div className='flex h-full w-full flex-col overflow-hidden'>
                       {mounted && (
@@ -5979,33 +5808,22 @@ export function GraphEditor({
                             </GraphLayoutSettingsProvider>
                           </ResizablePanel>
 
-                          <ResizableHandle className='bg-border/30 dark:bg-white/5' />
+                          <ResizableHandle
+                            className='bg-border/30 dark:bg-white/5'
+                            onDragging={setIsBottomDockResizing}
+                          />
 
-                          <ResizablePanel
-                            ref={bottomDockPanelRef}
-                            defaultSize={
-                              isBottomDockExpanded
-                                ? lastOpenBottomDockSizeRef.current
-                                : bottomCollapsedSizePct
-                            }
-                            collapsible
+                          <ControlledResizablePanel
+                            data-panel-kind='graph-console'
+                            dragging={isBottomDockResizing}
+                            order={2}
+                            open={isBottomDockExpanded}
+                            onOpenChange={setIsBottomDockExpanded}
+                            lastOpenSize={lastOpenBottomDockSizeRef}
                             collapsedSize={bottomCollapsedSizePct}
                             minSize={bottomMinSizePct}
                             maxSize={bottomMaxSizePct}
-                            onResize={(size) => {
-                              const collapseAt = bottomCollapsedSizePct + 0.5;
-                              const expandAt = bottomCollapsedSizePct + 2;
-
-                              if (size <= collapseAt && isBottomDockExpanded) {
-                                setIsBottomDockExpanded(false);
-                                return;
-                              }
-                              if (size >= expandAt && !isBottomDockExpanded)
-                                setIsBottomDockExpanded(true);
-                              if (size >= expandAt)
-                                lastOpenBottomDockSizeRef.current = size;
-                            }}
-                            className='min-h-0 transition-[flex-grow,flex-basis] duration-200 ease-in-out'
+                            className='min-h-0'
                           >
                             <GraphBottomDock
                               isReadOnly={writeGuard.blocked}
@@ -6013,87 +5831,84 @@ export function GraphEditor({
                               bottomDockTab={bottomDockTab}
                               onBottomDockTabClick={handleBottomTabClick}
                               isBottomDockExpanded={isBottomDockExpanded}
-                              setIsBottomDockExpanded={(next) => {
-                                setIsBottomDockExpanded(next);
-                                requestAnimationFrame(() => {
-                                  if (!bottomDockPanelRef.current) return;
-                                  bottomDockPanelRef.current.resize(
-                                    next
-                                      ? lastOpenBottomDockSizeRef.current
-                                      : bottomCollapsedSizePct
-                                  );
-                                });
-                              }}
+                              setIsBottomDockExpanded={setIsBottomDockExpanded}
                               consoleClearSignal={consoleClearSignal}
                               requestConsoleClear={requestConsoleClear}
                             />
-                          </ResizablePanel>
+                          </ControlledResizablePanel>
                         </ResizablePanelGroup>
                       </div>
                     </div>
                   </ResizablePanel>
 
-                  {retainedRightPanel === 'details' ? (
-                    <GraphDetailsPanel
-                      isReadOnly={writeGuard.blocked}
-                      detailsPanelRef={detailsPanelRef}
-                      lastOpenDetailsSizeRef={lastOpenDetailsSizeRef}
-                      detailsStateFromResizeRef={detailsStateFromResizeRef}
-                      isDetailsPanelOpen={isDetailsPanelOpen}
-                      setIsDetailsPanelOpen={setIsDetailsPanelOpen}
-                      detailsCollapsedSizePct={detailsCollapsedSizePct}
-                      detailsMinSizePct={detailsMinSizePct}
-                      detailsMaxSizePct={detailsMaxSizePct}
-                      closeDetailsPanel={closeDetailsPanel}
-                      isDark={isDark}
-                      graphViewMode={graphViewMode}
-                      nodes={nodes}
-                      edges={edges}
-                      onUpdateNode={({ nodeId, label, metadata }) => {
-                        setNodes((prev) =>
-                          prev.map((n) => {
-                            if (String(n.id) !== String(nodeId)) return n;
-                            const data = (n.data ?? {}) as any;
-                            return {
-                              ...n,
-                              data: {
-                                ...data,
-                                label,
-                                metadata
-                              }
-                            } as any;
-                          })
-                        );
-                      }}
-                      onSelectNodeId={(nodeId) => {
-                        selectEdges(() => false);
-                        selectNodes((n) => String(n.id) === String(nodeId));
-                        openDetailsPanel();
-                      }}
-                      onSelectEdgeId={(edgeId) => {
-                        selectNodes(() => false);
-                        selectEdges((e) => String(e.id) === String(edgeId));
-                        openDetailsPanel();
-                      }}
-                    />
-                  ) : null}
+                  <ResizableHandle
+                    withHandle
+                    disabled={!isRightPanelOpen}
+                    className={cn(
+                      'bg-border/60 dark:bg-white/10',
+                      !isRightPanelOpen && 'hidden'
+                    )}
+                  />
+                  <ControlledResizablePanel
+                    data-panel-kind='graph-right'
+                    order={3}
+                    open={isRightPanelOpen}
+                    aria-hidden={!isRightPanelOpen}
+                    inert={!isRightPanelOpen}
+                    onOpenChange={(open) => {
+                      if (!open) closeRightPanel();
+                    }}
+                    lastOpenSize={lastOpenRightSizeRef}
+                    minSize={rightMinSizePct}
+                    maxSize={rightMaxSizePct}
+                    className='min-w-0'
+                  >
+                    {retainedRightPanel === 'details' ? (
+                      <GraphDetailsPanel
+                        isReadOnly={writeGuard.blocked}
+                        closeDetailsPanel={closeDetailsPanel}
+                        isDark={isDark}
+                        graphViewMode={graphViewMode}
+                        nodes={nodes}
+                        edges={edges}
+                        onUpdateNode={({ nodeId, label, metadata }) => {
+                          setNodes((prev) =>
+                            prev.map((n) => {
+                              if (String(n.id) !== String(nodeId)) return n;
+                              const data = (n.data ?? {}) as any;
+                              return {
+                                ...n,
+                                data: {
+                                  ...data,
+                                  label,
+                                  metadata
+                                }
+                              } as any;
+                            })
+                          );
+                        }}
+                        onSelectNodeId={(nodeId) => {
+                          selectEdges(() => false);
+                          selectNodes((n) => String(n.id) === String(nodeId));
+                          openDetailsPanel();
+                        }}
+                        onSelectEdgeId={(edgeId) => {
+                          selectNodes(() => false);
+                          selectEdges((e) => String(e.id) === String(edgeId));
+                          openDetailsPanel();
+                        }}
+                      />
+                    ) : null}
 
-                  {retainedRightPanel === 'notes' || isNotesPanelDetached ? (
                     <GraphNotesPanel
                       graphId={graphId}
                       graphName={graphName}
                       nodes={nodes}
-                      notesPanelRef={notesPanelRef}
-                      lastOpenNotesSizeRef={lastOpenNotesSizeRef}
-                      notesStateFromResizeRef={notesStateFromResizeRef}
                       isNotesPanelOpen={isNotesPanelOpen}
-                      setIsNotesPanelOpen={setIsNotesPanelOpen}
                       isDetached={isNotesPanelDetached}
+                      isActive={tabIsActive}
                       detachNotesPanel={detachNotesPanel}
                       attachNotesPanel={attachNotesPanel}
-                      notesCollapsedSizePct={notesCollapsedSizePct}
-                      notesMinSizePct={notesMinSizePct}
-                      notesMaxSizePct={notesMaxSizePct}
                       closeNotesPanel={closeNotesPanel}
                       onSelectNodeId={(nodeId) => {
                         selectEdges(() => false);
@@ -6103,7 +5918,7 @@ export function GraphEditor({
                         );
                       }}
                     />
-                  ) : null}
+                  </ControlledResizablePanel>
                 </ResizablePanelGroup>
               </div>
             </div>

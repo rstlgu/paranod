@@ -128,6 +128,7 @@ export function GraphBottomDock(props: GraphBottomDockProps) {
         aria-expanded={props.isBottomDockExpanded}
         tabIndex={0}
         onKeyDown={(e) => {
+          if (e.target !== e.currentTarget) return;
           if (e.key === 'Enter' || e.key === ' ') {
             e.preventDefault();
             handleHeaderClick();
@@ -324,6 +325,7 @@ export function GraphBottomDock(props: GraphBottomDockProps) {
           props.isBottomDockExpanded ? 'opacity-100' : 'opacity-0 pointer-events-none'
         )}
         aria-hidden={!props.isBottomDockExpanded}
+        inert={!props.isBottomDockExpanded}
       >
         <div
           className={cn(

@@ -26,7 +26,7 @@ mkdir -p "$backup_dir/app-data"
 ./docker/release.sh exec -T postgres sh -c 'pg_dump -U "$POSTGRES_USER" -d "$POSTGRES_DB" -Fc' > "$backup_dir/database.dump"
 ./docker/release.sh cp app:/var/lib/paranod/. "$backup_dir/app-data"
 cp .env.docker compose.release.yml "$backup_dir/"
-printf '%s\n' 'Paranod 2.3.0; PostgreSQL 16' > "$backup_dir/VERSION.txt"
+printf '%s\n' 'Paranod 2.3.1; PostgreSQL 16' > "$backup_dir/VERSION.txt"
 ./docker/release.sh up -d --wait
 ```
 

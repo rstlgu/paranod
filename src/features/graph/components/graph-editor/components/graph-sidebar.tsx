@@ -10,13 +10,13 @@ import {
   XIcon as IconX
 } from '@/components/icons';
 import { Focus } from 'lucide-react';
-import type { ImperativePanelHandle } from 'react-resizable-panels';
 
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
-import { ResizableHandle, ResizablePanel } from '@/components/ui/resizable';
+import { ResizableHandle } from '@/components/ui/resizable';
+import { ControlledResizablePanel } from '@/components/ui/controlled-resizable-panel';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { TreeView, type TreeDataItem } from '@/components/ui/tree-view';
@@ -38,9 +38,7 @@ interface NodeTypeOptionLike {
 
 interface GraphSidebarProps {
   isReadOnly?: boolean;
-  sidebarPanelRef: React.MutableRefObject<ImperativePanelHandle | null>;
   lastOpenSidebarSizeRef: React.MutableRefObject<number>;
-  sidebarStateFromResizeRef: React.MutableRefObject<boolean>;
   isSidebarOpen: boolean;
   setIsSidebarOpen: React.Dispatch<React.SetStateAction<boolean>>;
   sidebarCollapsedSizePct: number;
@@ -112,35 +110,18 @@ function GraphSidebarComponent(props: GraphSidebarProps) {
 
   return (
     <>
-      <ResizablePanel
-        ref={props.sidebarPanelRef}
-        defaultSize={
-          props.isSidebarOpen
-            ? props.lastOpenSidebarSizeRef.current
-            : props.sidebarCollapsedSizePct
-        }
-        collapsible
+      <ControlledResizablePanel
+        data-panel-kind='graph-sidebar'
+        order={1}
+        open={props.isSidebarOpen}
+        aria-hidden={!props.isSidebarOpen}
+        inert={!props.isSidebarOpen}
+        onOpenChange={props.setIsSidebarOpen}
+        lastOpenSize={props.lastOpenSidebarSizeRef}
         collapsedSize={props.sidebarCollapsedSizePct}
         minSize={props.sidebarMinSizePct}
         maxSize={props.sidebarMaxSizePct}
-        onResize={(size) => {
-          const collapseAt = props.sidebarCollapsedSizePct + 0.5;
-          const expandAt = props.sidebarCollapsedSizePct + 2;
-
-          if (size <= collapseAt && props.isSidebarOpen) {
-            props.sidebarStateFromResizeRef.current = true;
-            props.setIsSidebarOpen(false);
-            return;
-          }
-
-          if (size >= expandAt && !props.isSidebarOpen) {
-            props.sidebarStateFromResizeRef.current = true;
-            props.setIsSidebarOpen(true);
-          }
-
-          if (size >= expandAt) props.lastOpenSidebarSizeRef.current = size;
-        }}
-        className='min-w-0 transition-[flex-grow,flex-basis] duration-200 ease-in-out'
+        className='min-w-0'
       >
         <aside
           className={cn(
@@ -600,7 +581,7 @@ function GraphSidebarComponent(props: GraphSidebarProps) {
             )}
           </GraphSidepanelBottomBar>
         </aside>
-      </ResizablePanel>
+      </ControlledResizablePanel>
 
       <ResizableHandle
         withHandle

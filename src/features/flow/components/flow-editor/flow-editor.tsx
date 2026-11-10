@@ -46,7 +46,8 @@ import { useWorkspaceTabsStore } from '@/features/workspace/store/workspace-tabs
 import { cn } from '@/lib/utils';
 import { useTheme } from 'next-themes';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import type { ImperativePanelHandle } from 'react-resizable-panels';
+import { ControlledResizablePanel } from '@/components/ui/controlled-resizable-panel';
+import { useBottomDock } from '@/hooks/use-bottom-dock';
 import ReactFlow, {
   addEdge,
   Background,
@@ -363,9 +364,8 @@ export function FlowEditor({
 
   // Sidebar parity with GraphEditor
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const sidebarPanelRef = useRef<ImperativePanelHandle | null>(null);
+  const [isSidebarResizing, setIsSidebarResizing] = useState(false);
   const lastOpenSidebarSizeRef = useRef(28);
-  const sidebarStateFromResizeRef = useRef(false);
   const sidebarSearchInputRef = useRef<HTMLInputElement | null>(null);
   const [sidebarSearchQuery, setSidebarSearchQuery] = useState('');
   const [sidebarTab, setSidebarTab] = useState<'nodes' | 'add' | 'trigger'>(
@@ -384,15 +384,15 @@ export function FlowEditor({
     return clampNumber(
       pxToPercent(sidebarMinWidthPx, panelGroupWidthPx),
       10,
-      60
+      45
     );
   }, [panelGroupWidthPx]);
   const sidebarMaxSizePct = useMemo(() => {
-    if (!panelGroupWidthPx) return 55;
+    if (!panelGroupWidthPx) return 45;
     return clampNumber(
       pxToPercent(sidebarMaxWidthPx, panelGroupWidthPx),
       20,
-      80
+      45
     );
   }, [panelGroupWidthPx]);
 
@@ -406,11 +406,13 @@ export function FlowEditor({
   }, [isSidebarOpen, sidebarTab]);
 
   // Bottom dock parity (reuse GraphBottomDock)
-  const [bottomDockTab, setBottomDockTab] = useState<'console' | 'activity'>(
-    'console'
-  );
-  const [isBottomDockExpanded, setIsBottomDockExpanded] = useState(false);
-  const bottomDockPanelRef = useRef<ImperativePanelHandle | null>(null);
+  const {
+    tab: bottomDockTab,
+    expanded: isBottomDockExpanded,
+    toggle: handleBottomTabClick,
+    setExpanded: setIsBottomDockExpanded
+  } = useBottomDock();
+  const [isBottomDockResizing, setIsBottomDockResizing] = useState(false);
   const lastOpenBottomDockSizeRef = useRef(28);
   const [bottomGroupHeightPx, setBottomGroupHeightPx] = useState<number | null>(
     null
@@ -444,25 +446,13 @@ export function FlowEditor({
     return clampNumber(
       pxToPercent(bottomMaxHeightPx, bottomGroupHeightPx),
       20,
-      95
+      80
     );
   }, [bottomGroupHeightPx]);
 
   const toggleConsoleDock = useCallback(() => {
-    setBottomDockTab('console');
-    setIsBottomDockExpanded((prev) => {
-      const nextExpanded = bottomDockTab === 'console' ? !prev : true;
-      requestAnimationFrame(() => {
-        if (!bottomDockPanelRef.current) return;
-        bottomDockPanelRef.current.resize(
-          nextExpanded
-            ? lastOpenBottomDockSizeRef.current
-            : bottomCollapsedSizePct
-        );
-      });
-      return nextExpanded;
-    });
-  }, [bottomCollapsedSizePct, bottomDockTab]);
+    handleBottomTabClick('console');
+  }, [handleBottomTabClick]);
 
   // Flow should own Cmd/Ctrl+B and Cmd/Ctrl+D (prevent global shortcuts)
   useEffect(() => {
@@ -1315,29 +1305,6 @@ export function FlowEditor({
     return () => ro.disconnect();
   }, []);
 
-  // Match GraphEditor: expand/collapse sidebar via panel ref
-  useEffect(() => {
-    if (!sidebarPanelRef.current) return;
-    if (sidebarStateFromResizeRef.current) {
-      sidebarStateFromResizeRef.current = false;
-      return;
-    }
-    requestAnimationFrame(() => {
-      if (!sidebarPanelRef.current) return;
-      if (isSidebarOpen) {
-        sidebarPanelRef.current.resize(lastOpenSidebarSizeRef.current);
-        (
-          sidebarPanelRef.current as unknown as { expand?: () => void }
-        ).expand?.();
-      } else {
-        (
-          sidebarPanelRef.current as unknown as { collapse?: () => void }
-        ).collapse?.();
-        sidebarPanelRef.current.resize(sidebarCollapsedSizePct);
-      }
-    });
-  }, [isSidebarOpen, sidebarCollapsedSizePct]);
-
   // Track bottom group height like GraphEditor (for collapsed size %)
   useEffect(() => {
     const el = bottomGroupElRef.current;
@@ -1610,10 +1577,9 @@ export function FlowEditor({
               className='h-full w-full'
             >
               <FlowSidepanel
-                sidebarPanelRef={sidebarPanelRef}
                 lastOpenSidebarSizeRef={lastOpenSidebarSizeRef}
-                sidebarStateFromResizeRef={sidebarStateFromResizeRef}
                 isSidebarOpen={isSidebarOpen}
+                isSidebarResizing={isSidebarResizing}
                 setIsSidebarOpen={setIsSidebarOpen}
                 sidebarCollapsedSizePct={sidebarCollapsedSizePct}
                 sidebarMinSizePct={sidebarMinSizePct}
@@ -1745,12 +1711,16 @@ export function FlowEditor({
                 orphanEdgeCount={orphanEdgeCount}
               />
 
-              <ResizableHandle className='bg-border/30 dark:bg-white/5' />
+              <ResizableHandle
+                className='bg-border/30 dark:bg-white/5'
+                onDragging={setIsSidebarResizing}
+              />
 
               <ResizablePanel
+                order={2}
                 defaultSize={100 - lastOpenSidebarSizeRef.current}
                 minSize={55}
-                className='min-w-0 transition-[flex-grow,flex-basis] duration-200 ease-in-out'
+                className='min-w-0'
               >
                 <div className='flex h-full w-full flex-col overflow-hidden'>
                   <FlowTopbar
@@ -1974,6 +1944,7 @@ export function FlowEditor({
                       className='h-full w-full'
                     >
                       <ResizablePanel
+                        order={1}
                         defaultSize={100 - lastOpenBottomDockSizeRef.current}
                         minSize={20}
                         className='min-h-0'
@@ -2265,53 +2236,33 @@ export function FlowEditor({
                         </div>
                       </ResizablePanel>
 
-                      <ResizableHandle className='bg-border/30 dark:bg-white/5' />
+                      <ResizableHandle
+                        className='bg-border/30 dark:bg-white/5'
+                        onDragging={setIsBottomDockResizing}
+                      />
 
-                      <ResizablePanel
-                        ref={bottomDockPanelRef}
-                        defaultSize={
-                          isBottomDockExpanded
-                            ? lastOpenBottomDockSizeRef.current
-                            : bottomCollapsedSizePct
-                        }
-                        collapsible
+                      <ControlledResizablePanel
+                        data-panel-kind='flow-console'
+                        dragging={isBottomDockResizing}
+                        order={2}
+                        open={isBottomDockExpanded}
+                        onOpenChange={setIsBottomDockExpanded}
+                        lastOpenSize={lastOpenBottomDockSizeRef}
                         collapsedSize={bottomCollapsedSizePct}
                         minSize={bottomMinSizePct}
                         maxSize={bottomMaxSizePct}
-                        onResize={(size) => {
-                          const collapseAt = bottomCollapsedSizePct + 0.5;
-                          const expandAt = bottomCollapsedSizePct + 2;
-                          if (size <= collapseAt && isBottomDockExpanded) {
-                            setIsBottomDockExpanded(false);
-                            return;
-                          }
-                          if (size >= expandAt && !isBottomDockExpanded)
-                            setIsBottomDockExpanded(true);
-                          if (size >= expandAt)
-                            lastOpenBottomDockSizeRef.current = size;
-                        }}
-                        className='min-h-0 transition-[flex-grow,flex-basis] duration-200 ease-in-out'
+                        className='min-h-0'
                       >
                         <GraphBottomDock
                           isActive={isActive}
                           bottomDockTab={bottomDockTab}
-                          onBottomDockTabClick={setBottomDockTab}
+                          onBottomDockTabClick={handleBottomTabClick}
                           isBottomDockExpanded={isBottomDockExpanded}
-                          setIsBottomDockExpanded={(next) => {
-                            setIsBottomDockExpanded(next);
-                            requestAnimationFrame(() => {
-                              if (!bottomDockPanelRef.current) return;
-                              bottomDockPanelRef.current.resize(
-                                next
-                                  ? lastOpenBottomDockSizeRef.current
-                                  : bottomCollapsedSizePct
-                              );
-                            });
-                          }}
+                          setIsBottomDockExpanded={setIsBottomDockExpanded}
                           consoleClearSignal={consoleClearSignal}
                           requestConsoleClear={requestConsoleClear}
                         />
-                      </ResizablePanel>
+                      </ControlledResizablePanel>
                     </ResizablePanelGroup>
                   </div>
                 </div>

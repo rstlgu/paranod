@@ -13,11 +13,9 @@ import {
   PlusIcon as IconPlus,
   XIcon as IconX
 } from '@/components/icons';
-import type { ImperativePanelHandle } from 'react-resizable-panels';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { ResizableHandle, ResizablePanel } from '@/components/ui/resizable';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
@@ -47,14 +45,6 @@ import { GraphSidepanelBottomBar } from './graph-sidepanel-bottom-bar';
 
 interface GraphDetailsPanelProps {
   isReadOnly?: boolean;
-  detailsPanelRef: React.MutableRefObject<ImperativePanelHandle | null>;
-  lastOpenDetailsSizeRef: React.MutableRefObject<number>;
-  detailsStateFromResizeRef: React.MutableRefObject<boolean>;
-  isDetailsPanelOpen: boolean;
-  setIsDetailsPanelOpen: React.Dispatch<React.SetStateAction<boolean>>;
-  detailsCollapsedSizePct: number;
-  detailsMinSizePct: number;
-  detailsMaxSizePct: number;
   closeDetailsPanel: () => void;
   isDark: boolean;
   graphViewMode: 'free' | 'locked' | 'analysis' | 'map';
@@ -981,45 +971,6 @@ export function GraphDetailsPanel(props: GraphDetailsPanelProps) {
   }, [selectionKind, relations, selectedNode, selectedEdge, sourceNode, targetNode, selectedEdgeData]);
 
   return (
-    <>
-      <ResizableHandle
-        withHandle
-        className={cn(
-          'bg-border/60 dark:bg-white/10',
-          'group/resize-handle [&>div]:opacity-0 group-hover/graph-details-panel:[&>div]:opacity-100',
-          props.isDetailsPanelOpen ? '' : 'hidden'
-        )}
-      />
-      <ResizablePanel
-        ref={props.detailsPanelRef}
-        defaultSize={
-          props.isDetailsPanelOpen
-            ? props.lastOpenDetailsSizeRef.current
-            : props.detailsCollapsedSizePct
-        }
-        collapsible
-        collapsedSize={props.detailsCollapsedSizePct}
-        minSize={props.detailsMinSizePct}
-        maxSize={props.detailsMaxSizePct}
-        onResize={(size) => {
-          const collapseAt = props.detailsCollapsedSizePct + 0.5;
-          const expandAt = props.detailsCollapsedSizePct + 2;
-
-          if (size <= collapseAt && props.isDetailsPanelOpen) {
-            props.detailsStateFromResizeRef.current = true;
-            props.setIsDetailsPanelOpen(false);
-            return;
-          }
-
-          if (size >= expandAt && !props.isDetailsPanelOpen) {
-            props.detailsStateFromResizeRef.current = true;
-            props.setIsDetailsPanelOpen(true);
-          }
-
-          if (size >= expandAt) props.lastOpenDetailsSizeRef.current = size;
-        }}
-        className='min-w-0 transition-[flex-grow,flex-basis] duration-200 ease-in-out'
-      >
         <aside
           className={cn(
             'group/graph-details-panel relative flex h-full flex-col overflow-hidden bg-background text-foreground',
@@ -1484,7 +1435,5 @@ export function GraphDetailsPanel(props: GraphDetailsPanelProps) {
 
           <GraphSidepanelBottomBar className='border-l-0' />
         </aside>
-      </ResizablePanel>
-    </>
   );
 }

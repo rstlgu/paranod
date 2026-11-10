@@ -3,7 +3,7 @@ name: paranod
 
 services:
   traefik:
-    image: paranod-traefik:${PARANOD_VERSION:-2.3.0}
+    image: paranod-traefik:${PARANOD_VERSION:-2.3.1}
     pull_policy: never
     restart: unless-stopped
     environment:
@@ -44,7 +44,7 @@ services:
       - paranod-network
 
   container-runner:
-    image: paranod-container-runner:${PARANOD_VERSION:-2.3.0}
+    image: paranod-container-runner:${PARANOD_VERSION:-2.3.1}
     pull_policy: never
     restart: unless-stopped
     environment:
@@ -65,7 +65,7 @@ services:
       - paranod-network
 
   app:
-    image: paranod-app:${PARANOD_VERSION:-2.3.0}
+    image: paranod-app:${PARANOD_VERSION:-2.3.1}
     pull_policy: never
     restart: unless-stopped
     depends_on:
@@ -145,7 +145,7 @@ services:
       - paranod-network
 
   agent-worker:
-    image: paranod-app:${PARANOD_VERSION:-2.3.0}
+    image: paranod-app:${PARANOD_VERSION:-2.3.1}
     pull_policy: never
     profiles: ['agent']
     restart: unless-stopped

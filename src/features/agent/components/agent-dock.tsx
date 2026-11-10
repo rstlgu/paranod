@@ -465,6 +465,8 @@ function ResizeHandle({
       aria-valuenow={width}
       className={styles.resize}
       onPointerDown={(event) => {
+        if (event.button !== 0) return;
+        event.preventDefault();
         drag.current = { x: event.clientX, width };
         event.currentTarget.setPointerCapture(event.pointerId);
         onResizing(true);
@@ -475,6 +477,7 @@ function ResizeHandle({
       }}
       onPointerUp={stop}
       onPointerCancel={stop}
+      onLostPointerCapture={stop}
       onKeyDown={(event) => {
         if (['ArrowLeft', 'ArrowRight'].includes(event.key)) {
           event.preventDefault();
@@ -495,7 +498,7 @@ export function AgentDock({ children }: { children: React.ReactNode }) {
   const visible = open && Boolean(graph);
   const mobile = useIsMobile();
   const floating = visible && detached && !mobile;
-  const { floatingBoundsRef, floatingRect, beginFloatingInteraction } =
+  const { floatingBoundsRef, floatingRect, beginFloatingInteraction, bringToFront, floatingZIndex } =
     useFloatingPanel({
       isDetached: floating,
       align: 'left',
@@ -504,6 +507,9 @@ export function AgentDock({ children }: { children: React.ReactNode }) {
     });
   const reduceMotion = useReducedMotion();
   const [resizing, setResizing] = useState(false);
+  useEffect(() => {
+    if (!visible || detached || mobile) setResizing(false);
+  }, [visible, detached, mobile]);
   const wasOpen = useRef(open);
   useEffect(
     () => () => {
@@ -568,7 +574,10 @@ export function AgentDock({ children }: { children: React.ReactNode }) {
         ? createPortal(
             <div
               ref={floatingBoundsRef}
-              className='pointer-events-none fixed inset-x-2 top-12 bottom-9 z-50'
+              className='pointer-events-none fixed inset-x-2 top-12 bottom-9'
+              style={{ zIndex: floatingZIndex }}
+              onPointerDownCapture={bringToFront}
+              onFocusCapture={bringToFront}
             >
               <motion.div
                 aria-label='Floating agent window'

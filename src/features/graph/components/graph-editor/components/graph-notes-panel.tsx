@@ -9,7 +9,6 @@ import dynamic from 'next/dynamic';
 import { createPortal } from 'react-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import type { Node } from 'reactflow';
-import type { ImperativePanelHandle } from 'react-resizable-panels';
 import { toast } from 'sonner';
 import {
   AppWindowIcon as IconWindow,
@@ -20,7 +19,6 @@ import {
   XIcon as IconClose
 } from '@/components/icons';
 import { Button } from '@/components/ui/button';
-import { ResizableHandle, ResizablePanel } from '@/components/ui/resizable';
 import { Skeleton } from '@/components/ui/skeleton';
 import { GraphSidepanelBottomBar } from './graph-sidepanel-bottom-bar';
 import type { CaseReference } from '@/features/cases/components/case-note-types';
@@ -60,17 +58,11 @@ interface GraphNotesPanelProps {
   graphId?: string;
   graphName: string;
   nodes: ReadonlyArray<Node>;
-  notesPanelRef: React.MutableRefObject<ImperativePanelHandle | null>;
-  lastOpenNotesSizeRef: React.MutableRefObject<number>;
-  notesStateFromResizeRef: React.MutableRefObject<boolean>;
   isNotesPanelOpen: boolean;
-  setIsNotesPanelOpen: React.Dispatch<React.SetStateAction<boolean>>;
   isDetached: boolean;
+  isActive?: boolean;
   detachNotesPanel: () => void;
   attachNotesPanel: () => void;
-  notesCollapsedSizePct: number;
-  notesMinSizePct: number;
-  notesMaxSizePct: number;
   closeNotesPanel: () => void;
   onSelectNodeId: (nodeId: string) => void;
 }
@@ -171,17 +163,11 @@ export function GraphNotesPanel({
   graphId,
   graphName,
   nodes,
-  notesPanelRef,
-  lastOpenNotesSizeRef,
-  notesStateFromResizeRef,
   isNotesPanelOpen,
-  setIsNotesPanelOpen,
   isDetached,
+  isActive = true,
   detachNotesPanel,
   attachNotesPanel,
-  notesCollapsedSizePct,
-  notesMinSizePct,
-  notesMaxSizePct,
   closeNotesPanel,
   onSelectNodeId
 }: GraphNotesPanelProps) {
@@ -219,8 +205,8 @@ export function GraphNotesPanel({
   const saveQueueRef = React.useRef(createSerialSaveQueue());
   const isMountedRef = React.useRef(false);
   const wasOpenRef = React.useRef(false);
-  const { floatingBoundsRef, floatingRect, beginFloatingInteraction } =
-    useFloatingPanel({ isDetached });
+  const { floatingBoundsRef, floatingRect, beginFloatingInteraction, bringToFront, floatingZIndex } =
+    useFloatingPanel({ isDetached: isDetached && isNotesPanelOpen && isActive });
 
   const { references, nodeIdByReferenceId } = React.useMemo(
     () => buildGraphReferences(graphId ?? '', graphName, nodes),
@@ -789,11 +775,14 @@ export function GraphNotesPanel({
   );
 
   const floatingNotes =
-    isDetached && typeof document !== 'undefined'
+    isDetached && isActive && typeof document !== 'undefined'
       ? createPortal(
           <div
             ref={floatingBoundsRef}
-            className='pointer-events-none fixed inset-x-2 top-12 bottom-9 z-50'
+            className='pointer-events-none fixed inset-x-2 top-12 bottom-9'
+            style={{ zIndex: floatingZIndex }}
+            onPointerDownCapture={bringToFront}
+            onFocusCapture={bringToFront}
           >
             <AnimatePresence initial={false}>
               {isNotesPanelOpen ? (
@@ -838,45 +827,5 @@ export function GraphNotesPanel({
 
   if (isDetached) return floatingNotes;
 
-  return (
-    <>
-      <ResizableHandle
-        withHandle
-        className={cn(
-          'bg-border/60 dark:bg-white/10',
-          'group/resize-handle [&>div]:opacity-0 group-hover/graph-notes-panel:[&>div]:opacity-100',
-          isNotesPanelOpen ? '' : 'hidden'
-        )}
-      />
-      <ResizablePanel
-        ref={notesPanelRef}
-        defaultSize={
-          isNotesPanelOpen
-            ? lastOpenNotesSizeRef.current
-            : notesCollapsedSizePct
-        }
-        collapsible
-        collapsedSize={notesCollapsedSizePct}
-        minSize={notesMinSizePct}
-        maxSize={notesMaxSizePct}
-        onResize={(size) => {
-          const collapseAt = notesCollapsedSizePct + 0.5;
-          const expandAt = notesCollapsedSizePct + 2;
-          if (size <= collapseAt && isNotesPanelOpen) {
-            notesStateFromResizeRef.current = true;
-            setIsNotesPanelOpen(false);
-            return;
-          }
-          if (size >= expandAt && !isNotesPanelOpen) {
-            notesStateFromResizeRef.current = true;
-            setIsNotesPanelOpen(true);
-          }
-          if (size >= expandAt) lastOpenNotesSizeRef.current = size;
-        }}
-        className='min-w-0 transition-[flex-grow,flex-basis] duration-200 ease-in-out'
-      >
-        {notesSurface}
-      </ResizablePanel>
-    </>
-  );
+  return isNotesPanelOpen ? notesSurface : null;
 }

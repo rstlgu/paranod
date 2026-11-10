@@ -463,7 +463,9 @@ export function GraphTopbar(props: GraphTopbarProps) {
 
   return (
     <div
-      className='border-border/40 bg-background/90 supports-[backdrop-filter]:bg-background/70 relative flex h-11 w-full items-center gap-1 border-b px-1.5 shadow-sm backdrop-blur select-none dark:border-white/10'
+      className='border-border/40 bg-background/90 supports-[backdrop-filter]:bg-background/70 relative flex h-11 w-full min-w-0 shrink-0 items-center gap-1 overflow-x-auto border-b px-1.5 shadow-sm backdrop-blur select-none [scrollbar-width:thin] dark:border-white/10 [&>*]:shrink-0'
+      role='toolbar'
+      aria-label='Graph tools'
       onMouseLeave={props.scheduleCloseTopbarMenus}
       onMouseEnter={props.cancelCloseTopbarMenus}
     >

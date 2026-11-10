@@ -13,12 +13,19 @@ export interface GraphPanelTogglesControls {
 
 interface GraphPanelTogglesState {
   controls: GraphPanelTogglesControls | null;
-  setControls: (controls: GraphPanelTogglesControls | null) => void;
+  setControls: (controls: GraphPanelTogglesControls) => () => void;
 }
 
 export const useGraphPanelTogglesStore = create<GraphPanelTogglesState>(
   (set) => ({
     controls: null,
-    setControls: (controls) => set({ controls })
+    setControls: (controls) => {
+      set({ controls });
+      // An inactive/unmounting tab must never clear another tab's controls.
+      return () =>
+        set((state) =>
+          state.controls === controls ? { controls: null } : state
+        );
+    }
   })
 );
