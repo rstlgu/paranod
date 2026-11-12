@@ -88,9 +88,14 @@ function estimateEdgeLabelSize(
   // Stima veloce: larghezza ~ chars * fontSize * factor.
   // (Misura “perfetta” richiede DOM/canvas, ma qui serve solo per spacing.)
   const approxCharWidth = fontSizePx * 0.6;
-  const rawWidth = text.length * approxCharWidth + paddingPx * 2;
+  const lines = text.split(/\r?\n/);
+  const longestLineLength = lines.reduce(
+    (max, line) => Math.max(max, line.length),
+    0
+  );
+  const rawWidth = longestLineLength * approxCharWidth + paddingPx * 2;
   const width = clampNumber(rawWidth, paddingPx * 2 + 16, maxWidthPx);
-  const height = fontSizePx * 1.35 + paddingPx * 2;
+  const height = lines.length * fontSizePx * 1.35 + paddingPx * 2;
   return { width, height };
 }
 

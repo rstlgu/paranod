@@ -1,5 +1,6 @@
 import type { AnalysisGraphLink, AnalysisGraphNode } from './analysis-transform';
 import { getAnalysisCanvasFontFamily } from './canvas-font';
+import { getEdgeArrowScale } from '../../utils/edge-style';
 
 const MAX_EDGE_LABEL_WIDTH_PX = 220;
 // LOD thresholds (zoom): lower = more zoomed out
@@ -132,7 +133,9 @@ function drawEdgeLabelOnEdge(args: {
   ctx.textBaseline = 'middle';
   ctx.textAlign = 'center';
 
-  const text = truncateTextToWidth({ ctx, text: rawText, maxWidthPx: MAX_EDGE_LABEL_WIDTH_PX });
+  const lines = rawText.split(/\r?\n/).map((text) =>
+    truncateTextToWidth({ ctx, text, maxWidthPx: MAX_EDGE_LABEL_WIDTH_PX })
+  );
 
   // Mantieni sempre testo leggibile (non capovolto)
   const normalized = ((args.angleRad % (Math.PI * 2)) + Math.PI * 2) % (Math.PI * 2);
@@ -146,14 +149,18 @@ function drawEdgeLabelOnEdge(args: {
   ctx.lineCap = 'round';
   ctx.strokeStyle = args.isDark ? 'rgba(19, 19, 19, 0.76)' : 'rgba(255, 255, 255, 0.77)';
   ctx.lineWidth = cut;
-  ctx.strokeText(text, 0, 0);
 
   ctx.fillStyle = args.isActive
     ? 'rgba(67, 56, 202, 1)'
     : args.isDark
       ? 'rgba(244, 244, 245, 0.85)'
       : 'rgba(24, 24, 27, 0.78)';
-  ctx.fillText(text, 0, 0);
+  const lineHeight = px * 1.4;
+  lines.forEach((text, index) => {
+    const y = (index - (lines.length - 1) / 2) * lineHeight;
+    ctx.strokeText(text, 0, y);
+    ctx.fillText(text, 0, y);
+  });
   ctx.restore();
 }
 
@@ -211,8 +218,9 @@ export function renderAnalysisLink({
 
   const startR = Math.max(6, s.nodeSize / 2);
   const endR = Math.max(6, t.nodeSize / 2);
-  const arrowLength = Math.max(5, 6 / Math.max(0.95, globalScale));
-  const arrowWidth = Math.max(3, 3.6 / Math.max(0.95, globalScale));
+  const arrowScale = getEdgeArrowScale(link.rfEdge.data?.arrowScale);
+  const arrowLength = Math.max(5, 6 / Math.max(0.95, globalScale)) * arrowScale;
+  const arrowWidth = Math.max(3, 3.6 / Math.max(0.95, globalScale)) * arrowScale;
 
   // `lineCap: round` extends the drawn stroke beyond the path endpoint by ~lineWidth/2.
   // Compensate by trimming in graph units so the line stops at node border like the arrow.

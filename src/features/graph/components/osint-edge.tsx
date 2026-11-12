@@ -20,11 +20,18 @@ import {
   EdgeLabelRenderer,
   useStore,
   Position,
-  BaseEdge,
-  EdgeMarker
+  BaseEdge
 } from 'reactflow';
+import {
+  DEFAULT_EDGE_STROKE_WIDTH,
+  EDGE_ARROW_HEIGHT_PX,
+  EDGE_ARROW_LENGTH_PX,
+  getEdgeArrowScale,
+  insetEdgeEndpoint
+} from '@/features/graph/components/graph-editor/utils/edge-style';
 import { useGuardedReactFlow as useReactFlow } from '../contexts/graph-mutation-context';
-import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { EdgeArrowSizeMenu } from './graph-editor/components/edge-arrow-size-menu';
 import { useAdaptiveContextMenu } from '@/components/ui/adaptive-context-menu';
 import { cn } from '@/lib/utils';
 import {
@@ -56,6 +63,7 @@ export interface OSINTEdgeData {
   edgeType?: 'default' | 'straight' | 'step' | 'smoothstep';
   color?: string;
   strokeWidth?: number;
+  arrowScale?: number;
   dashed?: boolean;
   hideDirection?: boolean; // Hide the arrow marker
   bidirectional?: boolean; // Show arrows on both ends
@@ -150,6 +158,7 @@ interface EdgeContextMenuProps {
   edgeType: string;
   baseColor: string;
   thickness: number;
+  arrowScale: number;
   dashed: boolean;
   labelVisible: boolean;
   hideDirection: boolean;
@@ -160,6 +169,7 @@ interface EdgeContextMenuProps {
   onChangeType: (type: string) => void;
   onChangeColor: (color: string) => void;
   onChangeThickness: (value: number) => void;
+  onChangeArrowScale: (value: number) => void;
   onToggleDashed: (value: boolean) => void;
   onToggleLabelVisible: (value: boolean) => void;
   onToggleHideDirection: (value: boolean) => void;
@@ -173,6 +183,7 @@ function EdgeContextMenu({
   edgeType,
   baseColor,
   thickness,
+  arrowScale,
   dashed,
   labelVisible,
   hideDirection,
@@ -183,6 +194,7 @@ function EdgeContextMenu({
   onChangeType,
   onChangeColor,
   onChangeThickness,
+  onChangeArrowScale,
   onToggleDashed,
   onToggleLabelVisible,
   onToggleHideDirection,
@@ -346,6 +358,12 @@ function EdgeContextMenu({
           </div>
         )}
       </div>
+
+      <EdgeArrowSizeMenu
+        scale={arrowScale}
+        onChange={onChangeArrowScale}
+        onClose={onClose}
+      />
 
       {/* Toggle Dashed/Solid Line */}
       <button
@@ -558,7 +576,6 @@ function OSINTEdgeVisible({
   targetPosition,
   data,
   selected,
-  markerEnd,
   interactionWidth,
   detailLevel,
   endpointNodes
@@ -628,6 +645,21 @@ function OSINTEdgeVisible({
       tx = tIntersect.x;
       ty = tIntersect.y;
       tPos = tIntersect.position;
+    }
+  }
+
+  const arrowScale = getEdgeArrowScale(data?.arrowScale);
+  const arrowLength = EDGE_ARROW_LENGTH_PX * arrowScale;
+  const arrowHeight = EDGE_ARROW_HEIGHT_PX * arrowScale;
+  const showsArrow = !data?.hideDirection;
+  if (showsArrow) {
+    const target = insetEdgeEndpoint(tx, ty, tPos, arrowLength);
+    tx = target.x;
+    ty = target.y;
+    if (data?.bidirectional) {
+      const source = insetEdgeEndpoint(sx, sy, sPos, arrowLength);
+      sx = source.x;
+      sy = source.y;
     }
   }
 
@@ -705,6 +737,18 @@ function OSINTEdgeVisible({
       setEdges((eds) =>
         eds.map((e) =>
           e.id === id ? { ...e, data: { ...e.data, strokeWidth: value } } : e
+        )
+      );
+    },
+    [canEdit, id, setEdges]
+  );
+
+  const updateArrowScale = useCallback(
+    (value: number) => {
+      if (!canEdit()) return;
+      setEdges((eds) =>
+        eds.map((e) =>
+          e.id === id ? { ...e, data: { ...e.data, arrowScale: value } } : e
         )
       );
     },
@@ -802,7 +846,7 @@ function OSINTEdgeVisible({
 
   // Stile base dell'edge
   const baseColor = data?.color || '#64748b';
-  const baseWidth = data?.strokeWidth ?? 2;
+  const baseWidth = data?.strokeWidth ?? DEFAULT_EDGE_STROKE_WIDTH;
   const isDashed = !!data?.dashed;
   const labelVisible = data?.labelVisible ?? true; // Default to visible
   const labelContent = (readOnly ? data?.label : labelText) || data?.relationship || '';
@@ -814,6 +858,7 @@ function OSINTEdgeVisible({
   // Usa un blu più scuro e sottile quando selezionato, come i nodi
   const strokeColor = selected ? '#4338ca' : baseColor; // indigo-700
   const displayWidth = selected ? baseWidth + 1 : baseWidth;
+  const edgeCap = showsArrow ? 'butt' : 'round';
   const edgeStyle = {
     '--edge-stroke': strokeColor,
     '--edge-width': displayWidth,
@@ -833,53 +878,56 @@ function OSINTEdgeVisible({
       onMouseLeave={() => setIsHovered(false)}
       onContextMenu={handleContextMenu}
     >
-      {selected ? (
+      {!data?.hideDirection ? (
         <defs>
-          {/* Marker con glow per selezione (end) - stesso stile di ArrowClosed ma più grande */}
-          {!data?.hideDirection && (
+          <marker
+            id={`arrow-end-${safeSvgId}`}
+            markerWidth={arrowLength}
+            markerHeight={arrowHeight}
+            viewBox={`0 0 ${EDGE_ARROW_LENGTH_PX} ${EDGE_ARROW_HEIGHT_PX}`}
+            orient='auto'
+            refX='0'
+            refY={EDGE_ARROW_HEIGHT_PX / 2}
+            markerUnits='userSpaceOnUse'
+          >
+            <path
+              d={`M 0 0 L ${EDGE_ARROW_LENGTH_PX} ${EDGE_ARROW_HEIGHT_PX / 2} L 0 ${EDGE_ARROW_HEIGHT_PX} z`}
+              fill={strokeColor}
+              style={
+                selected
+                  ? {
+                      transition: 'fill 0.2s ease',
+                      filter: 'drop-shadow(0 0 2px rgba(67, 56, 202, 0.45))'
+                    }
+                  : { transition: 'fill 0.2s ease' }
+              }
+            />
+          </marker>
+          {data?.bidirectional ? (
             <marker
-              id={`arrow-glow-${safeSvgId}`}
-              markerWidth='15'
-              markerHeight='15'
-              viewBox='0 0 10 10'
+              id={`arrow-start-${safeSvgId}`}
+              markerWidth={arrowLength}
+              markerHeight={arrowHeight}
+              viewBox={`0 0 ${EDGE_ARROW_LENGTH_PX} ${EDGE_ARROW_HEIGHT_PX}`}
               orient='auto'
-              refX='10'
-              refY='5'
+              refX={EDGE_ARROW_LENGTH_PX}
+              refY={EDGE_ARROW_HEIGHT_PX / 2}
               markerUnits='userSpaceOnUse'
             >
               <path
-                d='M 0 0 L 10 5 L 0 10 z'
+                d={`M ${EDGE_ARROW_LENGTH_PX} 0 L 0 ${EDGE_ARROW_HEIGHT_PX / 2} L ${EDGE_ARROW_LENGTH_PX} ${EDGE_ARROW_HEIGHT_PX} z`}
                 fill={strokeColor}
-                style={{
-                  transition: 'fill 0.2s ease',
-                  filter: 'drop-shadow(0 0 3px rgba(67, 56, 202, 0.6))'
-                }}
+                style={
+                  selected
+                    ? {
+                        transition: 'fill 0.2s ease',
+                        filter: 'drop-shadow(0 0 2px rgba(67, 56, 202, 0.45))'
+                      }
+                    : { transition: 'fill 0.2s ease' }
+                }
               />
             </marker>
-          )}
-
-          {/* Marker con glow per selezione (start - per bidirectional) */}
-          {data?.bidirectional && (
-            <marker
-              id={`arrow-glow-start-${safeSvgId}`}
-              markerWidth='15'
-              markerHeight='15'
-              viewBox='0 0 10 10'
-              orient='auto'
-              refX='0'
-              refY='5'
-              markerUnits='userSpaceOnUse'
-            >
-              <path
-                d='M 10 0 L 0 5 L 10 10 z'
-                fill={strokeColor}
-                style={{
-                  transition: 'fill 0.2s ease',
-                  filter: 'drop-shadow(0 0 3px rgba(67, 56, 202, 0.6))'
-                }}
-              />
-            </marker>
-          )}
+          ) : null}
         </defs>
       ) : null}
 
@@ -892,7 +940,7 @@ function OSINTEdgeVisible({
             stroke: strokeColor,
             strokeWidth: displayWidth + 8,
             strokeDasharray: isDashed ? '10 6' : 'none',
-            strokeLinecap: 'round',
+            strokeLinecap: edgeCap,
             opacity: 0.18
           }}
           interactionWidth={0}
@@ -904,24 +952,18 @@ function OSINTEdgeVisible({
         id={id}
         path={edgePath}
         markerEnd={
-          data?.hideDirection
-            ? undefined
-            : selected
-              ? `url(#arrow-glow-${safeSvgId})`
-              : markerEnd
+          data?.hideDirection ? undefined : `url(#arrow-end-${safeSvgId})`
         }
         markerStart={
           data?.bidirectional && !data?.hideDirection
-            ? selected
-              ? `url(#arrow-glow-start-${safeSvgId})`
-              : markerEnd
+            ? `url(#arrow-start-${safeSvgId})`
             : undefined
         }
         style={{
           stroke: strokeColor,
           strokeWidth: displayWidth,
           strokeDasharray: isDashed ? '10 6' : 'none',
-          strokeLinecap: 'round',
+          strokeLinecap: edgeCap,
           ...edgeStyle
         }}
         interactionWidth={interactionWidth ?? 30}
@@ -940,22 +982,31 @@ function OSINTEdgeVisible({
             }}
           >
             {showLabelEditor ? (
-              <Input
+              <Textarea
                 disabled={readOnly}
                 value={labelText}
                 onChange={(e) => updateLabel(e.target.value)}
                 onBlur={() => setIsEditing(false)}
                 onKeyDown={(e) => {
-                  if (e.key === 'Enter' || e.key === 'Escape') setIsEditing(false);
+                  e.stopPropagation();
+                  if (e.nativeEvent.isComposing) return;
+                  if ((e.key === 'Enter' && !e.shiftKey) || e.key === 'Escape') {
+                    e.preventDefault();
+                    setIsEditing(false);
+                  }
                 }}
-                className='h-7 w-32 bg-white text-xs dark:bg-zinc-900'
+                className='nodrag nopan nowheel min-h-7 w-48 resize-none'
+                style={{ backgroundColor: 'var(--background)' }}
+                rows={Math.max(1, labelText.split('\n').length)}
+                aria-label='Edge label'
+                title='Shift+Enter for a new line • Enter to finish'
                 autoFocus
                 placeholder='Label...'
               />
             ) : (
               <div
                 className={cn(
-                  'rounded-md border px-2.5 py-1 text-xs shadow-sm transition-all',
+                  'rounded-md border px-2.5 py-1 text-xs whitespace-pre-wrap shadow-sm transition-all',
                   readOnly ? 'cursor-text select-text' : 'cursor-pointer',
                   'bg-white hover:bg-gray-50 dark:bg-zinc-900 dark:hover:bg-zinc-800',
                   selected ? 'border-indigo-600 ring-2 ring-indigo-600/30' : 'border-border'
@@ -982,6 +1033,7 @@ function OSINTEdgeVisible({
           edgeType={edgeType}
           baseColor={baseColor}
           thickness={baseWidth}
+          arrowScale={arrowScale}
           dashed={isDashed}
           labelVisible={labelVisible}
           hideDirection={data?.hideDirection || false}
@@ -1002,6 +1054,7 @@ function OSINTEdgeVisible({
           onChangeType={updateEdgeType}
           onChangeColor={updateEdgeColor}
           onChangeThickness={updateEdgeThickness}
+          onChangeArrowScale={updateArrowScale}
           onToggleDashed={updateEdgeDash}
           onToggleLabelVisible={updateLabelVisible}
           onToggleHideDirection={updateHideDirection}
@@ -1037,7 +1090,7 @@ function OSINTEdgeLine({
       d={edgePath}
       fill='none'
       stroke={data?.color || '#64748b'}
-      strokeWidth={data?.strokeWidth ?? 2}
+      strokeWidth={data?.strokeWidth ?? DEFAULT_EDGE_STROKE_WIDTH}
       opacity={isCollapsing ? 0 : (customOpacity ?? 1)}
       pointerEvents='stroke'
       shapeRendering='optimizeSpeed'

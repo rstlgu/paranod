@@ -72,6 +72,7 @@ vi.mock('@/components/ui/adaptive-context-menu', () => ({
 }));
 vi.mock('@/components/ui/button', () => ({ Button: 'Button' }));
 vi.mock('@/components/ui/input', () => ({ Input: 'Input' }));
+vi.mock('@/components/ui/textarea', () => ({ Textarea: 'Textarea' }));
 vi.mock('@/components/ui/badge', () => ({ Badge: 'Badge' }));
 vi.mock('@/components/ui/scroll-area', () => ({ ScrollArea: 'ScrollArea' }));
 vi.mock('@/components/ui/separator', () => ({ Separator: 'Separator' }));
@@ -316,6 +317,7 @@ function menuProps() {
     'onCopySelection',
     'onChangeEdgeColor',
     'onChangeEdgeWidth',
+    'onChangeEdgeArrowScale',
     'onChangeEdgeType',
     'onToggleEdgeLabelVisible',
     'onToggleEdgeDashed',
@@ -325,6 +327,7 @@ function menuProps() {
     'onMergeSelection',
     'onUnmergeSelection',
     'onChangeWidth',
+    'onChangeArrowScale',
     'onInvertDirection',
     'onChangeThickness',
     'onToggleDashed',
@@ -793,7 +796,7 @@ describe('inline edge browsing', () => {
     menu.props.onCopyLabel();
     expect(state.copy).toHaveBeenCalledWith('Saved label');
     menu.props.onEditLabel();
-    expect(elements(draw()).some((el) => el.type === 'Input')).toBe(false);
+    expect(elements(draw()).some((el) => el.type === 'Textarea')).toBe(false);
   });
 
   it('closes an active label editor and rejects its stale change handler across unlock', () => {
@@ -801,7 +804,7 @@ describe('inline edge browsing', () => {
     elements(draw())
       .find((el) => el.props.onDoubleClick)!
       .props.onDoubleClick();
-    const input = elements(draw()).find((el) => el.type === 'Input')!;
+    const input = elements(draw()).find((el) => el.type === 'Textarea')!;
     expect(input).toBeDefined();
     state.editable = false;
     state.epoch++;
@@ -809,11 +812,11 @@ describe('inline edge browsing', () => {
     input.props.onChange({ target: { value: 'Blocked draft' } });
     expect(state.setState).not.toHaveBeenCalled();
     expect(state.setEdges).not.toHaveBeenCalled();
-    expect(elements(draw()).some((el) => el.type === 'Input')).toBe(false);
+    expect(elements(draw()).some((el) => el.type === 'Textarea')).toBe(false);
     state.effects.forEach((effect) => effect());
     state.editable = true;
     input.props.onChange({ target: { value: 'Stale draft' } });
-    expect(elements(draw()).some((el) => el.type === 'Input')).toBe(false);
+    expect(elements(draw()).some((el) => el.type === 'Textarea')).toBe(false);
     expect(label(draw())).toContain('Saved label');
     expect(state.setEdges).not.toHaveBeenCalled();
   });

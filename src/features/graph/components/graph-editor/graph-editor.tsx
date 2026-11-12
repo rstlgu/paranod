@@ -137,6 +137,7 @@ import { useTheme } from 'next-themes';
 import { OSINTNode } from '../osint-node';
 import type { OSINTNodeData } from '@/features/graph/types';
 import { OSINTEdge, OSINTEdgeData } from '../osint-edge';
+import { getEdgeArrowScale } from '@/features/graph/components/graph-editor/utils/edge-style';
 import { toast } from 'sonner';
 import { useWorkspaceTabsStore } from '@/features/workspace/store/workspace-tabs-store';
 import {
@@ -4262,6 +4263,23 @@ export function GraphEditor({
     [edges, setEdges]
   );
 
+  const handleChangeEdgeArrowScale = useCallback(
+    (arrowScale: number) => {
+      const selectedEdgeIds = new Set(
+        edges.filter((e) => e.selected).map((e) => e.id)
+      );
+      setEdges((eds) =>
+        eds.map((e) =>
+          selectedEdgeIds.has(e.id)
+            ? { ...e, data: { ...e.data, arrowScale } }
+            : e
+        )
+      );
+      toast.success(`Changed arrow size of ${selectedEdgeIds.size} edge(s)`);
+    },
+    [edges, setEdges]
+  );
+
   const handleChangeEdgeType = useCallback(
     (type: 'default' | 'straight' | 'smoothstep') => {
       const selectedEdgeIds = edges.filter((e) => e.selected).map((e) => e.id);
@@ -6116,6 +6134,7 @@ export function GraphEditor({
                 onCopySelection={handleCopySelection}
                 onChangeEdgeColor={handleChangeEdgeColor}
                 onChangeEdgeWidth={handleChangeEdgeWidth}
+                onChangeEdgeArrowScale={handleChangeEdgeArrowScale}
                 onChangeEdgeType={handleChangeEdgeType}
                 onToggleEdgeLabelVisible={handleToggleEdgeLabelVisible}
                 onToggleEdgeDashed={handleToggleEdgeDashed}
@@ -6554,6 +6573,17 @@ export function GraphEditor({
             relationalEdgeContextMenu ? (
               <AnalysisEdgeContextMenu
                 position={relationalEdgeContextMenu.position}
+                arrowScale={getEdgeArrowScale(
+                  edges.find(
+                    (edge) => edge.id === relationalEdgeContextMenu.edgeId
+                  )?.data?.arrowScale
+                )}
+                onChangeArrowScale={(arrowScale) =>
+                  updateRelationalEdge(relationalEdgeContextMenu.edgeId, (e) => ({
+                    ...e,
+                    data: { ...(e.data ?? {}), arrowScale }
+                  }))
+                }
                 onClose={() => setRelationalEdgeContextMenu(null)}
                 onChangeColor={(color) =>
                   updateRelationalEdge(

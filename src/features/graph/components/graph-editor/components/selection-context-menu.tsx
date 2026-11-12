@@ -39,6 +39,8 @@ import { getPhosphorIconByKey } from '@/features/osint/phosphor-icon-by-key';
 import { getGroupedPaletteItems, nodeTypeByType } from '@/features/osint/node-registry';
 import { LogoOrIcon } from './logo-or-icon';
 import type { LayoutOptions } from '@/features/graph/utils/auto-layout';
+import { EdgeArrowSizeMenu } from './edge-arrow-size-menu';
+import { getEdgeArrowScale } from '../utils/edge-style';
 
 const groupedNodeTypes = getGroupedPaletteItems();
 
@@ -87,6 +89,7 @@ interface SelectionContextMenuProps {
   onCopySelection: () => void;
   onChangeEdgeColor: (color: string) => void;
   onChangeEdgeWidth: (width: number) => void;
+  onChangeEdgeArrowScale: (scale: number) => void;
   onChangeEdgeType: (type: 'default' | 'straight' | 'smoothstep') => void;
   onToggleEdgeLabelVisible: () => void;
   onToggleEdgeDashed: () => void;
@@ -118,6 +121,7 @@ export function SelectionContextMenu({
   onCopySelection,
   onChangeEdgeColor,
   onChangeEdgeWidth,
+  onChangeEdgeArrowScale,
   onChangeEdgeType,
   onToggleEdgeLabelVisible,
   onToggleEdgeDashed,
@@ -774,6 +778,20 @@ export function SelectionContextMenu({
               </div>
             )}
           </div>
+
+          <EdgeArrowSizeMenu
+            scale={
+              selectedEdges.every(
+                (edge) =>
+                  getEdgeArrowScale(edge.data?.arrowScale) ===
+                  getEdgeArrowScale(selectedEdges[0]?.data?.arrowScale)
+              )
+                ? getEdgeArrowScale(selectedEdges[0]?.data?.arrowScale)
+                : undefined
+            }
+            onChange={onChangeEdgeArrowScale}
+            onClose={onClose}
+          />
 
           {/* Edge Type */}
           <div

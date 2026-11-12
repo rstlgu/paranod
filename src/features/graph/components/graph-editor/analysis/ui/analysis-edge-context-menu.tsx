@@ -15,6 +15,7 @@ import {
   ArrowElbowRightUpIcon as IconArrowWaveRightUp
 } from '@/components/icons';
 import { useAdaptiveContextMenu } from '@/components/ui/adaptive-context-menu';
+import { EdgeArrowSizeMenu } from '../../components/edge-arrow-size-menu';
 
 const edgeTypeOptions = [
   { value: 'default', label: 'Bezier', icon: IconVectorSpline },
@@ -44,6 +45,8 @@ export interface AnalysisEdgeContextMenuProps {
   onClose: () => void;
   onChangeColor: (color: string) => void;
   onChangeWidth: (width: number) => void;
+  arrowScale: number;
+  onChangeArrowScale: (scale: number) => void;
   onChangeType: (type: 'default' | 'straight' | 'smoothstep') => void;
   onInvertDirection: () => void;
   onDelete: () => void;
@@ -207,6 +210,12 @@ export function AnalysisEdgeContextMenu(props: AnalysisEdgeContextMenuProps) {
           </div>
         ) : null}
       </div>
+
+      <EdgeArrowSizeMenu
+        scale={props.arrowScale}
+        onChange={props.onChangeArrowScale}
+        onClose={props.onClose}
+      />
 
       <div className='my-1 h-px w-full bg-border/60' />
 
