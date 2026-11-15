@@ -25,14 +25,6 @@ export const navItems: NavItem[] = [
     shortcut: ['f', 'l'],
     isActive: false,
     items: []
-  },
-  {
-    title: 'Plugins & Addons',
-    url: '/plugins',
-    icon: 'store',
-    shortcut: ['p', 'l'],
-    isActive: false,
-    items: []
   }
   // Settings lives in the user menu.
 ];

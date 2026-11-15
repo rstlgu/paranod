@@ -63,7 +63,7 @@ In **Settings → Graph agent**, configure a provider and model. A healthy worke
 
 ## Addons and maintenance
 
-Install an addon from its personalized manifest URL in **Plugins & Addons**. No central Paranod account, public domain or inbound callback port is needed for SDK 0.5 addons supporting signed outbound polling. See the [complete addon walkthrough](https://github.com/rstlgu/paranod/blob/v2.3.3/docs/ADDON-WALKTHROUGH.md).
+Install an addon from its personalized manifest URL in **Settings → Addons → Install from URL**. No central Paranod account, public domain or inbound callback port is needed for SDK 0.5 addons supporting signed outbound polling. See the [complete addon walkthrough](https://github.com/rstlgu/paranod/blob/v2.3.3/docs/ADDON-WALKTHROUGH.md).
 
 The prebuilt application has no external store link configured. Direct manifest installation remains available. `NEXT_PUBLIC_ADDON_STORE_URL` is a build-time setting: changing it in `.env.docker` does not change prebuilt JavaScript. To customize this link, build from source with that setting.
 

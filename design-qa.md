@@ -94,3 +94,12 @@ Post-change browser verification:
 Final evidence in the same evidence directory: `plugins-compact.png`, `plugin-transforms-compact.png`, `addon-transforms-compact.png`, `config-compact.png`, `install-addon-compact.png`, `agent-compact.png`, `transforms-mobile-compact.png`, `config-mobile-compact.png`, and `addon-mobile-light-compact.png`.
 
 `compact-comparison.png` places the source reference and final browser states together. `compact-comparison-detail.png` compares equal-size crops of the previously approved catalog and the compact revision. Both were opened and reviewed. Typography, neutral colors and icon quality remain consistent; reduced spacing is intentional following user review. No actionable P0/P1/P2 findings remain. The preview is left open with a plugin's transforms expanded.
+
+
+## Final navigation refinement
+
+This revision supersedes the inline disclosures above. Catalog summaries now open the existing detail page directly; transform lists appear only in details. The Plugins & Addons entry has been removed from the main application sidebar. Both extension sections remain in the settings navigation, accessible through the profile menu.
+
+Verified against the rebuilt production preview: plugin click, addon keyboard activation, both detail lists and return links, independent Configure dialog cancellation, profile-menu access, and absence of the main-sidebar entry. The mobile detail dialog has no horizontal overflow (368px client and scroll width). Compact spacing and the simplified secondary dialogs are retained. No external transform was executed.
+
+Final evidence: `plugins-direct.png`, `plugin-details-direct.png`, `addon-details-direct.png`, `addon-details-mobile.png`. `direct-details-comparison.png` combines the reference and final views and was visually inspected. No actionable P0/P1/P2 findings remain. Typecheck, all 915 tests, lint (zero errors; existing warnings) and the production build passed. The approved redesign is ready for publication and deployment.

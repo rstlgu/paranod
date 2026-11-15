@@ -31,7 +31,7 @@ Construct this personalized URL privately, substituting the configured installat
 https://addon.example.org/manifest.json?token=YOUR_INSTALLATION_TOKEN
 ```
 
-In Paranod, open **Plugins & Addons → Addons → Install addon**, paste the URL, review the manifest and complete installation. The manifest token authorizes registration; protect it like a credential. Registration creates separate signing credentials for the workspace. Neither an addon store nor a central Paranod account is required.
+In Paranod, open **Settings → Addons → Install from URL**, paste the URL, review the manifest and complete installation. The manifest token authorizes registration; protect it like a credential. Registration creates separate signing credentials for the workspace. Neither an addon store nor a central Paranod account is required.
 
 Add a domain node with the value `example.org` to a graph. Select the node and run **Demo polling addon → Create demo subdomain**. The action should progress from running to completed and add the synthetic domain and its relationship. The platform retrieves status and results through signed requests to the addon's polling endpoint. Closing the browser does not stop background polling.
 
