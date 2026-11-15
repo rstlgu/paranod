@@ -2,7 +2,10 @@
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import {
+  SettingsRow,
+  settingsStyles as ui
+} from '@/features/settings/settings-fields';
 import { Textarea } from '@/components/ui/textarea';
 import { AGENT_PROVIDERS } from '@/features/agent/lib/contracts';
 import type { AgentProviderCredential } from '@/features/agent/server/credential';
@@ -75,7 +78,7 @@ export function AgentCredentialForm({
   }
 
   return (
-    <div className='flex flex-col gap-4'>
+    <div className='w-full'>
       {updatedAt ? (
         <p className='text-muted-foreground text-xs'>
           Updated {new Date(updatedAt).toLocaleString()}
@@ -84,16 +87,17 @@ export function AgentCredentialForm({
 
       {canEdit ? (
         <form
-          className='flex flex-col gap-4'
+          className='w-full'
           onSubmit={(event) => {
             event.preventDefault();
             submit('PUT');
           }}
         >
-          <div className='flex flex-col gap-2'>
-            <Label htmlFor={fieldId}>
-              {configured ? 'Replace key' : 'API key'}
-            </Label>
+          <SettingsRow
+            label={configured ? 'Replace API key' : 'API key'}
+            htmlFor={fieldId}
+            description='Encrypted on the server. The saved key is never displayed.'
+          >
             <Input
               id={fieldId}
               type='password'
@@ -103,13 +107,13 @@ export function AgentCredentialForm({
               value={apiKey}
               onChange={(event) => setApiKey(event.target.value)}
             />
-            <p className='text-muted-foreground text-xs'>
-              Encrypted on the server and never shown again.
-            </p>
-          </div>
+          </SettingsRow>
           {hasModelList ? (
-            <div className='flex flex-col gap-2'>
-              <Label htmlFor={`${fieldId}-models`}>Allowed models</Label>
+            <SettingsRow
+              label='Allowed models'
+              htmlFor={`${fieldId}-models`}
+              description='One model ID per line, up to 20. Models must support tools.'
+            >
               <Textarea
                 id={`${fieldId}-models`}
                 rows={4}
@@ -120,20 +124,20 @@ export function AgentCredentialForm({
                 value={models}
                 onChange={(event) => setModels(event.target.value)}
               />
-              <p className='text-muted-foreground text-xs'>
-                One slug per line, up to 20. The agent only works with models
-                that support tools.
-              </p>
-            </div>
+            </SettingsRow>
           ) : null}
-          <div className='flex flex-wrap gap-2'>
-            <Button type='submit' disabled={isSaving || !canSubmit}>
+          <div className={ui.actions}>
+            <Button
+              className={ui.action}
+              type='submit'
+              disabled={isSaving || !canSubmit}
+            >
               {isSaving ? 'Saving…' : 'Save'}
             </Button>
             {configured ? (
               <Button
                 type='button'
-                variant='outline'
+                className={ui.action}
                 disabled={isSaving}
                 onClick={() => submit('DELETE')}
               >

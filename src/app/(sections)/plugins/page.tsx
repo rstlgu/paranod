@@ -1,65 +1,29 @@
 'use client';
-
 import PageContainer from '@/components/layout/page-container';
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem
-} from '@/components/ui/accordion';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Card, CardDescription, CardTitle } from '@/components/ui/card';
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuCheckboxItem,
   DropdownMenuItem,
-  DropdownMenuSeparator,
   DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
-import { Separator } from '@/components/ui/separator';
-import { Skeleton } from '@/components/ui/skeleton';
 import { Switch } from '@/components/ui/switch';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { getEntityConfig } from '@/features/graph/config/entity-config';
 import { InstallAddonDialog } from '@/features/plugins/components/install-addon-dialog';
 import { PluginConfigSheet } from '@/features/plugins/components/plugin-config-sheet';
-import { PluginIcon } from '@/features/plugins/components/plugin-icon';
 import { usePlugins } from '@/features/plugins/hooks/use-plugins';
 import type { ConfigField } from '@/features/plugins/types';
-import { getBuiltInPluginStyle } from '@/features/plugins/utils/plugin-style';
-import { cn } from '@/lib/utils';
 import {
-  IconAlertTriangle,
-  IconArrowRight,
-  IconCheck,
-  IconDotsVertical,
-  IconFileText,
-  IconInfoCircle,
-  IconKey,
-  IconLayoutGrid,
-  IconList,
-  IconLock,
-  IconMapPin,
-  IconPackage,
-  IconPhoto,
-  IconPlug,
-  IconPuzzle,
-  IconSearch,
-  IconServer,
-  IconSettings,
-  IconSparkles,
-  IconTrash,
-  IconUsers,
-  IconWallet,
-  IconX
-} from '@tabler/icons-react';
-import { AnimatePresence, motion } from 'framer-motion';
+  SettingsSection,
+  SettingsRow,
+  settingsStyles as ui
+} from '@/features/settings/settings-fields';
 import { useRouter } from 'next/navigation';
 import { useQueryState, parseAsStringLiteral } from 'nuqs';
-import { SettingsPageHeader } from '@/features/settings/settings-page-header';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { toast } from 'sonner';
+import { CaretDown } from '@phosphor-icons/react';
 
 interface PluginTransform {
   id: string;
@@ -102,22 +66,17 @@ interface Plugin {
   isExternal?: boolean;
 }
 
-type ViewMode = 'grid' | 'table';
-
-const STORAGE_KEY_VIEW = 'plugins-view-mode';
 const ADDON_STORE_URL = process.env.NEXT_PUBLIC_ADDON_STORE_URL;
 
 export default function PluginsPage() {
   const router = useRouter();
-  const [mounted, setMounted] = useState(false);
-  const [activeTab, setActiveTab] = useQueryState(
+  const [activeTab] = useQueryState(
     'tab',
     parseAsStringLiteral(['plugins', 'addons'] as const)
       .withDefault('plugins')
       .withOptions({ shallow: true })
   );
   const [togglingPlugin, setTogglingPlugin] = useState<string | null>(null);
-  const [viewMode, setViewMode] = useState<ViewMode>('table');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
 
@@ -125,7 +84,6 @@ export default function PluginsPage() {
   const [configDialogOpen, setConfigDialogOpen] = useState(false);
   const [configPlugin, setConfigPlugin] = useState<Plugin | null>(null);
   const [tempConfig, setTempConfig] = useState<Record<string, unknown>>({});
-  const [expandedItems, setExpandedItems] = useState<string[]>([]);
   const [showInstallDialog, setShowInstallDialog] = useState(false);
 
   // Usa SWR per il caching dei plugin - caricamento istantaneo dalla cache
@@ -138,34 +96,6 @@ export default function PluginsPage() {
     isLoading: loading,
     refresh: refreshPlugins
   } = usePlugins();
-
-  console.log('🖥️ PluginsPage render:', {
-    builtinPlugins: builtinPlugins.length,
-    communityPlugins: communityPlugins.length,
-    customPlugins: customPlugins.length,
-    addons: addons.length,
-    isWorkspaceAdmin,
-    loading
-  });
-
-  // Avoid hydration mismatch with Radix UI
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  // Carica preferenza vista da localStorage
-  useEffect(() => {
-    const saved = localStorage.getItem(STORAGE_KEY_VIEW);
-    if (saved === 'grid' || saved === 'table') {
-      setViewMode(saved);
-    }
-  }, []);
-
-  // Salva preferenza vista
-  const handleViewModeChange = (mode: ViewMode) => {
-    setViewMode(mode);
-    localStorage.setItem(STORAGE_KEY_VIEW, mode);
-  };
 
   // Filtro condiviso: ricerca testo + categoria
   const matchesFilters = useCallback(
@@ -320,20 +250,6 @@ export default function PluginsPage() {
     });
   }
 
-  function getCategoryIcon(value: string) {
-    const v = value.toLowerCase();
-    if (v === 'network') return IconServer;
-    if (v === 'identity') return IconUsers;
-    if (v === 'media') return IconPhoto;
-    if (v === 'location') return IconMapPin;
-    if (v === 'blockchain') return IconWallet;
-    if (v === 'ai') return IconSparkles;
-    if (v === 'osint') return IconInfoCircle;
-    if (v === 'social') return IconUsers;
-    if (v === 'documents') return IconFileText;
-    return IconPlug;
-  }
-
   // Plugin/addon con settings configurabili (schema non vuoto)
   const hasConfigSchema = useCallback((plugin: Plugin): boolean => {
     return Object.keys(plugin.configSchema ?? {}).length > 0;
@@ -479,14 +395,6 @@ export default function PluginsPage() {
     [router, activeTab]
   );
 
-  function toggleExpandedPlugin(pluginId: string) {
-    setExpandedItems((prev) =>
-      prev.includes(pluginId)
-        ? prev.filter((id) => id !== pluginId)
-        : [...prev, pluginId]
-    );
-  }
-
   // Raggruppa la lista per categoria (sezioni ordinate alfabeticamente,
   // 'other' sempre in fondo).
   const groupByCategory = useCallback(
@@ -507,631 +415,158 @@ export default function PluginsPage() {
     []
   );
 
-  // Vista raggruppata per categoria (grid o list) con header di sezione.
-  const GroupedCollection = ({ list }: { list: Plugin[] }) => {
-    const groups = groupByCategory(list);
-    return (
-      <div className='space-y-8'>
-        {groups.map(([category, items]) => {
-          const Icon = getCategoryIcon(category);
-          return (
-            <section key={category} className='space-y-3'>
-              <div className='flex items-center gap-2.5'>
-                <div className='flex h-7 w-7 items-center justify-center rounded-lg bg-zinc-100 dark:bg-zinc-800'>
-                  <Icon className='text-muted-foreground h-4 w-4' />
-                </div>
-                <h3 className='text-sm font-semibold tracking-tight'>
-                  {formatCategoryLabel(category)}
-                </h3>
-                <Badge variant='secondary' className='rounded-full text-xs'>
-                  {items.length}
-                </Badge>
-                <div className='ml-1 h-px flex-1 bg-zinc-200/70 dark:bg-zinc-800/70' />
-              </div>
-              {viewMode === 'grid' ? (
-                <div className='grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'>
-                  {items.map((plugin) => (
-                    <PluginCard key={plugin.id} plugin={plugin} />
-                  ))}
-                </div>
-              ) : (
-                <Accordion
-                  type='multiple'
-                  className='w-full'
-                  value={expandedItems}
-                  onValueChange={setExpandedItems}
-                >
-                  {items.map((plugin) => (
-                    <PluginAccordionItem key={plugin.id} plugin={plugin} />
-                  ))}
-                </Accordion>
-              )}
-            </section>
-          );
-        })}
-      </div>
-    );
-  };
-
-  // Card Plugin per vista Grid (Restyled)
-  const PluginCard = ({ plugin }: { plugin: Plugin }) => {
-    const { logoUrl, headerBg, headerText } = getBuiltInPluginStyle(
-      plugin.inputTypes,
-      plugin.icon,
-      plugin.logoUrl ?? undefined
-    );
-    const isToggling = togglingPlugin === plugin.id;
-    const needsSetup = needsConfiguration(plugin);
-
-    return (
-      <motion.div
-        layout
-        initial={{ opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
-        exit={{ opacity: 0, scale: 0.95 }}
-        transition={{ duration: 0.2 }}
+  const displayed = activeTab === 'addons' ? filteredAddons : filteredPlugins;
+  return (
+    <PageContainer>
+      <SettingsSection
+        title={activeTab === 'addons' ? 'External addons' : 'Installed plugins'}
+        description={
+          activeTab === 'addons'
+            ? 'Connect tools hosted by external providers using their manifest URL.'
+            : 'Choose which tools are available in your investigations.'
+        }
+        action={
+          ADDON_STORE_URL && (
+            <a
+              className={ui.action}
+              href={ADDON_STORE_URL}
+              target='_blank'
+              rel='noopener noreferrer'
+            >
+              Browse store
+            </a>
+          )
+        }
       >
-        <Card
-          className='group hover:border-primary/20 dark:hover:shadow-primary/5 relative cursor-pointer overflow-hidden rounded-2xl border border-zinc-200/50 bg-white/50 shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg dark:border-zinc-800/50 dark:bg-zinc-900/50'
-          onClick={() => openPluginDetail(plugin.id)}
-        >
-          <div className='p-3.5'>
-            <div className='flex items-center justify-between gap-3'>
-              <div className='flex min-w-0 flex-1 items-center gap-3'>
-                <div
-                  className={cn(
-                    'relative flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-xl border shadow-sm transition-transform duration-300 group-hover:scale-105',
-                    headerBg
-                  )}
+        {activeTab === 'addons' && (
+          <SettingsRow
+            label='Install an addon'
+            description='Use the HTTPS manifest URL supplied by the provider.'
+          >
+            <Button
+              className={ui.action}
+              disabled={!isWorkspaceAdmin}
+              onClick={() => setShowInstallDialog(true)}
+            >
+              Install from URL
+            </Button>
+          </SettingsRow>
+        )}
+        {!isWorkspaceAdmin && (
+          <p className={ui.notice}>
+            Only workspace administrators can change these settings.
+          </p>
+        )}
+        <div className={`${ui.toolbar} pt-5`}>
+          <Input
+            aria-label='Search extensions'
+            placeholder={
+              activeTab === 'addons' ? 'Search addons' : 'Search plugins'
+            }
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button className={ui.action}>
+                {selectedLabel}
+                <CaretDown size={14} />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align='end'>
+              <DropdownMenuItem onSelect={() => setSelectedCategories([])}>
+                All categories
+              </DropdownMenuItem>
+              {categoryStats.options.map((opt) => (
+                <DropdownMenuCheckboxItem
+                  key={opt.value}
+                  checked={selectedCategories.includes(opt.value)}
+                  onSelect={(e) => e.preventDefault()}
+                  onCheckedChange={() => toggleCategory(opt.value)}
                 >
-                  <PluginIcon
-                    inputTypes={plugin.inputTypes}
-                    icon={plugin.icon}
-                    logoUrl={logoUrl}
-                    size={24}
-                    iconClassName={cn('h-5 w-5', headerText)}
-                  />
-                </div>
-                <div className='min-w-0 flex-1'>
-                  <div className='flex items-center gap-2'>
-                    <CardTitle className='truncate text-sm font-bold tracking-tight'>
-                      {plugin.name}
-                    </CardTitle>
-                    {needsSetup ? (
-                      <div className='flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400'>
-                        <IconAlertTriangle className='h-3 w-3' />
-                      </div>
-                    ) : null}
-                  </div>
-                  <CardDescription className='text-muted-foreground mt-0.5 line-clamp-1 text-xs'>
-                    {plugin.description}
-                  </CardDescription>
-                  <div className='mt-0.5 flex items-center gap-2'>
-                    <p className='text-muted-foreground text-xs font-medium'>
-                      v{plugin.version}
-                    </p>
-                    <span className='text-muted-foreground text-[10px] font-medium whitespace-nowrap'>
-                      • {plugin.transforms.length} transforms
-                    </span>
-                  </div>
-                </div>
-              </div>
-              <div
-                className='flex shrink-0 items-center gap-0.5 rounded-full bg-zinc-100/80 p-0.5 backdrop-blur-md dark:bg-zinc-800/80'
-                onClick={(e) => e.stopPropagation()}
-              >
-                {hasConfigSchema(plugin) && (
-                  <Button
-                    variant='ghost'
-                    size='icon'
-                    className='h-7 w-7 rounded-full hover:bg-white hover:shadow-sm dark:hover:bg-zinc-700'
-                    onClick={() => openConfigDialog(plugin)}
-                    title='Configure plugin'
-                  >
-                    <IconSettings className='h-3.5 w-3.5 text-zinc-500' />
-                  </Button>
-                )}
-                {plugin.isExternal && (
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button
-                        variant='ghost'
-                        size='icon'
-                        className='h-7 w-7 rounded-full hover:bg-white hover:shadow-sm dark:hover:bg-zinc-700'
-                        title='More options'
-                      >
-                        <IconDotsVertical className='h-3.5 w-3.5 text-zinc-500' />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align='end'>
-                      <DropdownMenuItem
-                        onClick={() => handleUninstall(plugin.id, plugin.name)}
-                        className='text-red-600 focus:text-red-700 dark:text-red-400 dark:focus:text-red-300'
-                      >
-                        <IconTrash className='mr-2 h-4 w-4' />
-                        Uninstall
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                )}
-                <Switch
-                  checked={plugin.enabled}
-                  onCheckedChange={(checked) => handleToggle(plugin, checked)}
-                  disabled={isToggling || !canTogglePlugin(plugin)}
-                />
-              </div>
-            </div>
-          </div>
-        </Card>
-      </motion.div>
-    );
-  };
-
-  // Accordion Plugin per vista Table/List
-  const PluginAccordionItem = ({ plugin }: { plugin: Plugin }) => {
-    const { logoUrl, headerBg, headerText } = getBuiltInPluginStyle(
-      plugin.inputTypes,
-      plugin.icon,
-      plugin.logoUrl ?? undefined
-    );
-    const isToggling = togglingPlugin === plugin.id;
-    const needsSetup = needsConfiguration(plugin);
-
-    return (
-      <AccordionItem
-        value={plugin.id}
-        className='group border-border/60 overflow-hidden border-b bg-transparent transition-colors'
-      >
-        <div
-          className='relative flex cursor-pointer items-center'
-          onClick={() => openPluginDetail(plugin.id)}
-        >
-          <div className='min-w-0 flex-1 py-4 pr-28 pl-0'>
-            <div className='flex items-center gap-4'>
-              <div
-                className={cn(
-                  'flex h-10 w-10 shrink-0 items-center justify-center rounded-lg',
-                  headerBg
-                )}
-              >
-                <PluginIcon
-                  inputTypes={plugin.inputTypes}
-                  icon={plugin.icon}
-                  logoUrl={logoUrl}
-                  size={28}
-                  iconClassName={cn('h-6 w-6', headerText)}
-                />
-              </div>
-              <div className='min-w-0 text-left'>
-                <div className='flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1'>
+                  {opt.label} ({opt.count})
+                </DropdownMenuCheckboxItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+      </SettingsSection>
+      {loading ? (
+        <p className={ui.notice} role='status'>
+          Loading extensions…
+        </p>
+      ) : !displayed.length ? (
+        <SettingsRow
+          label={
+            activeTab === 'addons' ? 'No addons found' : 'No plugins found'
+          }
+          description={
+            searchQuery || selectedCategories.length
+              ? 'Try another search or category.'
+              : 'Installed addons will appear here.'
+          }
+        />
+      ) : (
+        groupByCategory(displayed).map(([category, plugins]) => (
+          <SettingsSection key={category} title={formatCategoryLabel(category)}>
+            {plugins.map((plugin) => (
+              <SettingsRow
+                key={plugin.id}
+                label={
                   <button
-                    type='button'
-                    className='min-w-0 flex-1 truncate text-left text-sm font-medium tracking-tight'
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      toggleExpandedPlugin(plugin.id);
-                    }}
+                    className={ui.link}
+                    onClick={() => openPluginDetail(plugin.id)}
                   >
                     {plugin.name}
                   </button>
-
-                  {needsSetup && (
-                    <Badge
-                      variant='outline'
-                      className='border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-900/30 dark:bg-amber-900/10 dark:text-amber-400'
-                    >
-                      Setup Required
-                    </Badge>
-                  )}
-                </div>
-                <p className='text-muted-foreground mt-0.5 line-clamp-1 text-xs'>
-                  {plugin.description}
-                </p>
-                <div className='mt-1 flex items-center gap-2'>
-                  <p className='text-muted-foreground text-xs font-medium'>
-                    v{plugin.version}
-                  </p>
-                  <span className='text-muted-foreground text-[10px] whitespace-nowrap'>
-                    • {plugin.transforms.length} transforms
-                  </span>
-                </div>
-              </div>
-            </div>
-          </div>
-          <div className='absolute top-1/2 right-5 z-10 flex -translate-y-1/2 items-center gap-3'>
-            <div
-              className='flex items-center gap-1 rounded-full bg-zinc-100/80 p-1 backdrop-blur-md dark:bg-zinc-800/80'
-              onClick={(e) => e.stopPropagation()}
-            >
-              {hasConfigSchema(plugin) && (
-                <Button
-                  variant='ghost'
-                  size='icon'
-                  className='h-8 w-8 rounded-full hover:bg-white hover:shadow-sm dark:hover:bg-zinc-700'
-                  onClick={() => openConfigDialog(plugin)}
-                  title='Configure plugin'
-                >
-                  <IconSettings className='h-4 w-4 text-zinc-500' />
-                </Button>
-              )}
-              {plugin.isExternal && (
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button
-                      variant='ghost'
-                      size='icon'
-                      className='h-8 w-8 rounded-full hover:bg-white hover:shadow-sm dark:hover:bg-zinc-700'
-                      title='More options'
-                    >
-                      <IconDotsVertical className='h-4 w-4 text-zinc-500' />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align='end'>
-                    <DropdownMenuItem
-                      onClick={() => handleUninstall(plugin.id, plugin.name)}
-                      className='text-red-600 focus:text-red-700 dark:text-red-400 dark:focus:text-red-300'
-                    >
-                      <IconTrash className='mr-2 h-4 w-4' />
-                      Uninstall
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              )}
-              <Switch
-                className='scale-90'
-                checked={plugin.enabled}
-                onCheckedChange={(checked) => handleToggle(plugin, checked)}
-                disabled={isToggling || !canTogglePlugin(plugin)}
-              />
-            </div>
-          </div>
-        </div>
-        <AccordionContent className='px-5 pb-5'>
-          <div className='space-y-1 rounded-xl border border-zinc-100 bg-zinc-50/50 p-3 dark:border-zinc-800 dark:bg-zinc-900/50'>
-            {plugin.transforms.map((transform, index) => {
-              const inputConfig = getEntityConfig(transform.inputType);
-              const isLast = index === plugin.transforms.length - 1;
-              return (
-                <div
-                  key={transform.id}
-                  className='flex items-start gap-2 py-1.5'
-                >
-                  {/* Tree line */}
-                  <div className='flex flex-col items-center pt-1'>
-                    <div
-                      className={cn(
-                        'flex h-4 w-4 items-center justify-center',
-                        isLast
-                          ? 'text-muted-foreground'
-                          : 'text-muted-foreground'
-                      )}
-                    >
-                      {isLast ? '└' : '├'}
-                    </div>
-                  </div>
-                  {/* Transform content */}
-                  <div className='min-w-0 flex-1'>
-                    <div className='flex items-center gap-2'>
-                      <span className='text-sm font-medium'>
-                        {transform.name}
-                      </span>
-
-                      {transform.requiresApiKey && (
-                        <Badge
-                          variant='outline'
-                          className='gap-1 border-zinc-200 bg-zinc-50 px-1.5 text-[10px] text-zinc-600 dark:border-zinc-800 dark:bg-zinc-900/40 dark:text-zinc-400'
-                          title='Requires your API key (plugin configuration)'
-                        >
-                          <IconKey className='h-3 w-3' />
-                          API key
-                        </Badge>
-                      )}
-                      <span className='text-muted-foreground text-xs'>—</span>
-                      <span className='text-muted-foreground truncate text-xs'>
-                        {transform.description}
-                      </span>
-                    </div>
-                    <div className='mt-1 flex items-center gap-1.5'>
-                      <Badge
-                        variant='secondary'
-                        className={cn(
-                          'gap-1 text-xs',
-                          inputConfig.headerBg,
-                          inputConfig.headerText
-                        )}
-                      >
-                        <inputConfig.icon className='h-3 w-3' />
-                        {transform.inputType}
-                      </Badge>
-                      <IconArrowRight className='text-muted-foreground h-3 w-3' />
-                      {transform.outputTypes.map((out) => {
-                        const outConfig = getEntityConfig(out);
-                        return (
-                          <Badge
-                            key={out}
-                            variant='secondary'
-                            className={cn(
-                              'gap-1 text-xs',
-                              outConfig.headerBg,
-                              outConfig.headerText
-                            )}
-                          >
-                            <outConfig.icon className='h-3 w-3' />
-                            {out}
-                          </Badge>
-                        );
-                      })}
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </AccordionContent>
-      </AccordionItem>
-    );
-  };
-
-  return (
-    <PageContainer>
-      <div className='w-full space-y-4'>
-        <div className='flex items-start justify-between'>
-          <div>
-            <SettingsPageHeader
-              eyebrow='Extensions'
-              title={activeTab === 'addons' ? 'Addons' : 'Plugins'}
-              description={
-                activeTab === 'addons'
-                  ? 'Connect external tools to your workspace with an addon manifest.'
-                  : 'Choose the tools available in your investigations.'
-              }
-            />
-            {!isWorkspaceAdmin && (
-              <Badge variant='secondary' className='mt-2 gap-1'>
-                <IconLock className='h-3 w-3' />
-                View only (admin required to change settings)
-              </Badge>
-            )}
-          </div>
-        </div>
-        <Separator />
-
-        {mounted && (
-          <Tabs
-            value={activeTab}
-            onValueChange={(value) =>
-              setActiveTab(value === 'addons' ? 'addons' : 'plugins')
-            }
-            className='w-full space-y-6'
-          >
-            <div className='flex flex-wrap items-center justify-between gap-3'>
-              <TabsList className='bg-zinc-100 p-1 dark:bg-zinc-800'>
-                <TabsTrigger
-                  value='plugins'
-                  className='data-[state=active]:text-foreground gap-1.5 rounded-md px-4 py-1.5 text-sm font-medium transition-all data-[state=active]:bg-white data-[state=active]:shadow-sm'
-                >
-                  <IconPlug className='h-4 w-4' />
-                  Plugins ({filteredPlugins.length})
-                </TabsTrigger>
-                <TabsTrigger
-                  value='addons'
-                  className='data-[state=active]:text-foreground gap-1.5 rounded-md px-4 py-1.5 text-sm font-medium transition-all data-[state=active]:bg-white data-[state=active]:shadow-sm'
-                >
-                  <IconPuzzle className='h-4 w-4' />
-                  Addons ({filteredAddons.length})
-                </TabsTrigger>
-              </TabsList>
-
-              <div className='flex flex-wrap items-center gap-2'>
-                {ADDON_STORE_URL && (
-                  <Button asChild variant='outline'>
-                    <a
-                      href={ADDON_STORE_URL}
-                      target='_blank'
-                      rel='noopener noreferrer'
-                    >
-                      Visit Store
-                      <IconArrowRight className='h-4 w-4' />
-                    </a>
+                }
+                description={
+                  <>
+                    <span className='line-clamp-2'>{plugin.description}</span>
+                    <span className='mt-1 block text-xs'>
+                      {plugin.transforms.length}{' '}
+                      {plugin.transforms.length === 1 ? 'action' : 'actions'} ·
+                      v{plugin.version}
+                      {needsConfiguration(plugin)
+                        ? ' · Configuration required'
+                        : ''}
+                    </span>
+                  </>
+                }
+              >
+                {hasConfigSchema(plugin) && (
+                  <Button
+                    className={ui.action}
+                    aria-label={`Configure ${plugin.name}`}
+                    onClick={() => openConfigDialog(plugin)}
+                    disabled={!canToggle}
+                  >
+                    Configure
                   </Button>
                 )}
-                {activeTab === 'addons' && isWorkspaceAdmin && (
-                  <Button onClick={() => setShowInstallDialog(true)}>
-                    <IconPuzzle className='h-4 w-4' />
-                    Install from URL
+                {plugin.isExternal && (
+                  <Button
+                    className={ui.action}
+                    onClick={() => handleUninstall(plugin.id, plugin.name)}
+                    disabled={!canToggle}
+                  >
+                    Remove
                   </Button>
                 )}
-
-                <div className='relative min-w-40 flex-1 sm:w-52'>
-                  <IconSearch className='text-muted-foreground absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2' />
-                  <Input
-                    placeholder='Search'
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className='border-border h-9 rounded-lg bg-transparent pr-9 pl-9 shadow-none'
-                  />
-                  {searchQuery && (
-                    <Button
-                      variant='ghost'
-                      size='icon'
-                      className='absolute top-1/2 right-1 h-7 w-7 -translate-y-1/2'
-                      onClick={() => setSearchQuery('')}
-                    >
-                      <IconX className='h-4 w-4' />
-                    </Button>
-                  )}
-                </div>
-
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button
-                      variant='outline'
-                      className='border-border h-9 rounded-lg bg-transparent shadow-none'
-                      type='button'
-                    >
-                      {selectedLabel}
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align='end' className='w-56'>
-                    <DropdownMenuItem
-                      onSelect={(e) => {
-                        e.preventDefault();
-                        setSelectedCategories([]);
-                      }}
-                      className='text-xs'
-                    >
-                      <div className='flex w-full items-center justify-between gap-2'>
-                        <div className='flex min-w-0 items-center gap-2'>
-                          <IconList className='text-muted-foreground h-4 w-4' />
-                          <span className='truncate'>
-                            All ({categoryStats.total})
-                          </span>
-                        </div>
-                        <IconCheck
-                          className={cn(
-                            'text-muted-foreground h-4 w-4',
-                            selectedCategories.length === 0
-                              ? 'opacity-100'
-                              : 'opacity-0'
-                          )}
-                        />
-                      </div>
-                    </DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                    {categoryStats.options.map((opt) => (
-                      <DropdownMenuItem
-                        key={opt.value}
-                        onSelect={(e) => {
-                          e.preventDefault();
-                          toggleCategory(opt.value);
-                        }}
-                      >
-                        <div className='flex w-full items-center justify-between gap-2'>
-                          <div className='flex min-w-0 items-center gap-2'>
-                            {(() => {
-                              const Icon = getCategoryIcon(opt.value);
-                              return (
-                                <Icon className='text-muted-foreground h-4 w-4' />
-                              );
-                            })()}
-                            <span className='truncate'>
-                              {opt.label} ({opt.count})
-                            </span>
-                          </div>
-                          <IconCheck
-                            className={cn(
-                              'text-muted-foreground h-4 w-4',
-                              selectedCategories.includes(opt.value)
-                                ? 'opacity-100'
-                                : 'opacity-0'
-                            )}
-                          />
-                        </div>
-                      </DropdownMenuItem>
-                    ))}
-                  </DropdownMenuContent>
-                </DropdownMenu>
-
-                <div className='flex items-center rounded-lg bg-zinc-100 p-1 dark:bg-zinc-800'>
-                  <Button
-                    variant='ghost'
-                    size='sm'
-                    onClick={() => handleViewModeChange('grid')}
-                    className={cn(
-                      'h-7 w-7 rounded-md p-0 hover:bg-transparent',
-                      viewMode === 'grid' &&
-                        'bg-white shadow-sm dark:bg-zinc-700'
-                    )}
-                  >
-                    <IconLayoutGrid className='h-4 w-4' />
-                  </Button>
-                  <Button
-                    variant='ghost'
-                    size='sm'
-                    onClick={() => handleViewModeChange('table')}
-                    className={cn(
-                      'h-7 w-7 rounded-md p-0 hover:bg-transparent',
-                      viewMode === 'table' &&
-                        'bg-white shadow-sm dark:bg-zinc-700'
-                    )}
-                  >
-                    <IconList className='h-4 w-4' />
-                  </Button>
-                </div>
-              </div>
-            </div>
-
-            <TabsContent value='plugins' className='mt-0'>
-              {loading ? (
-                <LoadingSkeleton viewMode={viewMode} />
-              ) : filteredPlugins.length === 0 ? (
-                <EmptyState
-                  icon={IconPackage}
-                  title={searchQuery ? 'No plugins found' : 'No plugins'}
-                  description={
-                    searchQuery
-                      ? 'Try a different search term.'
-                      : 'Built-in and store plugins will appear here.'
+                <Switch
+                  aria-label={`Enable ${plugin.name}`}
+                  checked={plugin.enabled}
+                  disabled={
+                    !canTogglePlugin(plugin) || togglingPlugin === plugin.id
                   }
+                  onCheckedChange={(enabled) => handleToggle(plugin, enabled)}
                 />
-              ) : (
-                <AnimatePresence mode='wait'>
-                  <motion.div
-                    key={`plugins-${viewMode}`}
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -10 }}
-                    transition={{ duration: 0.2 }}
-                  >
-                    <GroupedCollection list={filteredPlugins} />
-                  </motion.div>
-                </AnimatePresence>
-              )}
-            </TabsContent>
-
-            <TabsContent value='addons' className='mt-0'>
-              {loading ? (
-                <LoadingSkeleton viewMode={viewMode} />
-              ) : filteredAddons.length === 0 ? (
-                <EmptyState
-                  icon={IconPuzzle}
-                  title={
-                    searchQuery ? 'No addons found' : 'No addons installed'
-                  }
-                  description={
-                    searchQuery
-                      ? 'Try a different search term.'
-                      : 'Addons are external providers installed from a manifest URL (Stremio-style).'
-                  }
-                  action={
-                    !searchQuery && isWorkspaceAdmin ? (
-                      <Button onClick={() => setShowInstallDialog(true)}>
-                        <IconPuzzle className='h-4 w-4' />
-                        Install from URL
-                      </Button>
-                    ) : undefined
-                  }
-                />
-              ) : (
-                <AnimatePresence mode='wait'>
-                  <motion.div
-                    key={`addons-${viewMode}`}
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -10 }}
-                    transition={{ duration: 0.2 }}
-                  >
-                    <GroupedCollection list={filteredAddons} />
-                  </motion.div>
-                </AnimatePresence>
-              )}
-            </TabsContent>
-          </Tabs>
-        )}
-      </div>
-
-      {configPlugin ? (
+              </SettingsRow>
+            ))}
+          </SettingsSection>
+        ))
+      )}
+      {configPlugin && (
         <PluginConfigSheet
           open={configDialogOpen}
           onOpenChange={setConfigDialogOpen}
@@ -1141,113 +576,14 @@ export default function PluginsPage() {
           value={tempConfig}
           onChange={setTempConfig}
           onSave={savePluginConfig}
-          saveLabel='Save Configuration'
+          saveLabel='Save changes'
         />
-      ) : null}
-
-      {/* Install Addon Dialog */}
+      )}
       <InstallAddonDialog
         open={showInstallDialog}
         onOpenChange={setShowInstallDialog}
-        onSuccess={() => {
-          refreshPlugins();
-        }}
+        onSuccess={() => refreshPlugins()}
       />
     </PageContainer>
-  );
-}
-
-function LoadingSkeleton({ viewMode }: { viewMode: ViewMode }) {
-  if (viewMode === 'table') {
-    return (
-      <div className='w-full space-y-3'>
-        {[1, 2, 3, 4, 5].map((i) => (
-          <div
-            key={i}
-            className='group dark:hover:shadow-primary/5 relative mb-3 overflow-hidden rounded-[20px] border border-zinc-200/50 bg-white/50 shadow-sm transition-all duration-300 dark:border-zinc-800/50 dark:bg-zinc-900/50'
-          >
-            <div className='flex items-center py-4 pr-32 pl-5'>
-              <div className='flex items-center gap-4'>
-                <Skeleton className='h-12 w-12 shrink-0 rounded-2xl' />
-                <div className='min-w-0 space-y-2'>
-                  <div className='flex flex-wrap items-center gap-2'>
-                    <Skeleton className='h-4 w-32' />
-                    <Skeleton className='h-5 w-24 rounded-full' />
-                  </div>
-                  <div className='flex items-center gap-2'>
-                    <Skeleton className='h-3 w-12' />
-                    <Skeleton className='h-3 w-20' />
-                  </div>
-                </div>
-              </div>
-            </div>
-            <div className='absolute top-1/2 right-5 -translate-y-1/2'>
-              <div className='flex items-center gap-1 rounded-full bg-zinc-100/80 p-1 backdrop-blur-md dark:bg-zinc-800/80'>
-                <Skeleton className='h-8 w-8 rounded-full' />
-                <Skeleton className='h-8 w-10 rounded-full' />
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
-    );
-  }
-
-  return (
-    <div className='grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'>
-      {[1, 2, 3, 4, 5, 6].map((i) => (
-        <Card
-          key={i}
-          className='group hover:border-primary/20 dark:hover:shadow-primary/5 relative overflow-hidden rounded-[24px] border border-zinc-200/50 bg-white/50 shadow-sm transition-all duration-300 dark:border-zinc-800/50 dark:bg-zinc-900/50'
-        >
-          <div className='p-5'>
-            <div className='flex flex-wrap items-center justify-between gap-3'>
-              <div className='flex items-center gap-4'>
-                <Skeleton className='h-14 w-14 shrink-0 rounded-2xl' />
-                <div className='min-w-0 flex-1 space-y-2'>
-                  <div className='flex items-center gap-2'>
-                    <Skeleton className='h-4 w-32' />
-                  </div>
-                  <div className='flex items-center gap-2'>
-                    <Skeleton className='h-3 w-12' />
-                    <Skeleton className='h-3 w-20' />
-                  </div>
-                </div>
-              </div>
-              <div className='flex items-center gap-1 rounded-full bg-zinc-100/80 p-1 backdrop-blur-md dark:bg-zinc-800/80'>
-                <Skeleton className='h-8 w-8 rounded-full' />
-                <Skeleton className='h-8 w-10 rounded-full' />
-              </div>
-            </div>
-            <Skeleton className='mt-4 h-10 w-full rounded-md' />
-          </div>
-        </Card>
-      ))}
-    </div>
-  );
-}
-
-interface EmptyStateProps {
-  icon: React.ComponentType<{ className?: string }>;
-  title: string;
-  description: string;
-  action?: React.ReactNode;
-}
-
-function EmptyState({
-  icon: Icon,
-  title,
-  description,
-  action
-}: EmptyStateProps) {
-  return (
-    <div className='flex min-h-[200px] flex-col items-center justify-center rounded-lg border border-dashed p-8 text-center'>
-      <Icon className='text-muted-foreground mb-4 h-10 w-10' />
-      <h3 className='mb-1 text-sm font-semibold'>{title}</h3>
-      <p className='text-muted-foreground mb-4 max-w-sm text-xs'>
-        {description}
-      </p>
-      {action}
-    </div>
   );
 }

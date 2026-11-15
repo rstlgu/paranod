@@ -1,52 +1,75 @@
-# Settings window — design QA
+# Settings content redesign — design QA
 
 final result: passed
 
-## Visual target and evidence
+## Scope and visual target
 
-The target is the user-supplied Claude settings screenshot. Local evidence is stored outside the repository in `/Users/ross/Projects/paranod-settings-preview-20261115/`.
+The user approved the existing outer settings dialog and left navigation, but rejected the reused inner screens. The target remains the supplied Claude settings screenshot: plain sections, divided rows, labels and descriptions on the left, compact neutral controls on the right. Paranod functionality and English product labels are retained.
 
-- Source: `reference.png`, 2930 × 1822 pixels, normalized to 1465 × 911 CSS pixels (2× source density).
-- Implementation: `settings-final.png`, 1465 × 911 pixels, captured in the in-app browser at the same CSS viewport, dark theme, General settings open above a synthetic investigation graph.
-- Full-view comparison: `comparison-final.png`, source and implementation together.
-- Focused comparison: `comparison-final-detail.png`, header, navigation, search and typography together at readable scale.
-- Additional browser captures: `plugins-final.png`, `plugins-mobile-final.png` (390 × 844), `settings-light-final.png`; account mobile layout was also inspected.
+Evidence directory: `/Users/ross/Projects/paranod-settings-preview-20261115/` (outside source control).
+
+- Source: `reference.png`, 2930 × 1822 pixels, normalized to 1465 × 911 CSS pixels from its 2× density.
+- Desktop browser captures: 1465 × 911 pixels / CSS viewport; dark theme, settings open above a synthetic investigation graph.
+- Main views: `general-content-redesign.png`, `agent-content-redesign.png`, `plugins-content-redesign.png`.
+- Full comparison: `content-redesign-comparison.png`, source and all three main views in one image.
+- Final focused comparison: `content-redesign-comparison-detail.png`, normalized crops of source and final provider/plugin content at readable scale. Both final comparison images were opened and inspected after the control-surface correction.
+- Secondary views: `account-content-redesign.png`, `workspace-content-redesign.png`, `plugin-detail-redesign.png`, `plugin-config-redesign.png`, `addons-content-redesign.png`, `addon-install-redesign.png`, `system-content-redesign.png`, `account-light-redesign.png`.
+- Combined secondary review: `content-redesign-secondary-review.png`.
+- Responsive evidence: `account-mobile-redesign.png`, `agent-mobile-redesign.png`, `plugins-mobile-redesign.png` at 390 × 844; `plugins-tablet-redesign.png` at 820 × 980.
+
+The reference and implementation have different product content. Comparison evaluates the requested visual language, not Claude-specific options. The already-approved frame proportions and navigation are intentionally unchanged.
 
 ## Findings and iteration history
 
-All actionable P0/P1/P2 findings are resolved.
+1. **P1, resolved — Original inner screens retained the old card layout.** The previous QA pass over-weighted the outer window and was insufficient. Account cards, provider cards and nested provider navigation, workspace cards/tabs, plugin grids and decorative detail sections have been replaced with real shared section/row components, rather than CSS hiding their borders. The comparison and secondary screenshots show the rebuilt structure.
+2. **P2, resolved — Neutral action surfaces were too dark.** The first new comparison showed black-looking buttons on the dark surface, while the reference uses lighter neutral fills. Shared actions and secondary-dialog footer controls now use a foreground-derived neutral fill; the active theme button also has a clearer selected fill. The final production preview was rebuilt and refreshed. The new full-view and focused comparisons show the corrected fills matching the reference’s neutral control treatment.
+3. **Earlier window findings remain resolved.** The first iteration fixed the missing Geist font variable, nested-dialog lifecycle, agent graph preservation, and capture-phase graph keyboard shortcuts while dialogs are open. That structural work is retained. Its lifecycle and keyboard regression tests still pass.
 
-1. P2 — Typography inherited the technical Chakra Petch family. The first comparison (`comparison-before.png`) exposed the mismatch. Applied the neutral Geist font to this interface and its configuration dialogs. A second browser check revealed that the font variable was absent from the document; registered the existing Geist variable in the root font list. The final browser reports Geist and both final comparison images show the corrected typography.
-2. P2 — Separate intercepted layouts remounted the window between settings and plugins. Consolidated them under one shared window layout. Browser navigation across categories retains one dialog and one surrounding frame.
-3. P1 — The agent dock could lose its displayed graph when the overlay URL changed. The UI now resolves the underlying application route while the overlay is open. The agent panel and graph stay mounted; action execution still requires the actual active graph.
-4. P1 — Direct entry followed by intercepted navigation could stack dialogs. Added a single-layer context, the implicit route fallback and lifecycle tests. Direct account entry, switching to Plugins and closing returns to the workspace with no remaining dialog or pointer lock.
-5. P1 — Graph keyboard shortcuts used a window capture listener and could run behind a focused dialog button. The handler now excludes dialog controls. Regression tests cover navigation, copy, undo and deletion keys. In the final browser, Ctrl+B and Delete from Close settings leave the graph node and panel unchanged.
+## Fidelity surfaces
 
-## Fidelity review
+- **Typography:** neutral Geist, 16px section headings, 15px labels, 14px descriptions/controls, 12px secondary metadata. Clear weights and line heights; long descriptions wrap or are deliberately limited to two lines in catalog rows, with full descriptions in details.
+- **Layout:** full-width rows with subtle dividers, consistent section gaps and right-aligned controls. No repeated plugin/addon tabs inside the pane. Provider settings and password fields open inline. On mobile, rows wrap and the approved horizontal navigation remains reachable; dialog scroll width equals client width. Tablet fields remain readable and controls do not overlap text.
+- **Colors:** existing #202020 dark content and #191919 sidebar, muted dividers, neutral inputs and monochrome switches. Light theme checked. Final action surfaces and theme selection were confirmed in the refreshed browser.
+- **Assets:** existing Phosphor/navigation icons and user avatar remain. No decorative raster assets are required by the reference; no synthetic illustrations were introduced.
+- **Copy:** real account/workspace/provider/plugin information, concise explanations and explicit action labels. Removed decorative metadata from plugin details and fixed singular action counts. No planning instructions appear in the UI.
 
-- Typography: neutral Geist, clear hierarchy, readable small text and visible keyboard focus. The rest of the application retains its existing branding.
-- Layout rhythm: centered overlay, left search/navigation, independent right content scrolling, understated rows/dividers and rounded frame. The 1120px maximum width and 230px navigation intentionally accommodate existing Paranod forms and plugin controls. Mobile uses horizontally scrolling navigation and a full-height content pane; no content overflow at 390px.
-- Colors: dark window #202020, sidebar #191919, muted dividers, selected navigation #373737 and dimmed application background. Light theme is also verified. Existing semantic status and action colors are retained.
-- Assets: existing brand assets and library icons remain sharp. The reference contains interface controls and needs no generated raster assets.
-- Content: actual Paranod sections and functionality are retained. English labels follow the application's existing language. Claude-specific billing and other unrelated settings are not reproduced.
+## Browser verification
 
-## Functional verification
+Verified in the isolated preview with synthetic data:
 
-Verified navigation, search and empty search results, profile name save in a disposable account, plugin catalog and detail, centered plugin configuration and Cancel, dedicated Addons selection, manifest dialog and Escape, theme selection, Tab focus containment, direct links, close/reopen and restoration of the workspace and agent panel.
+- Every settings section, plugin details and return navigation.
+- Provider disclosure open/close and the OpenRouter model field, including mobile focus and scrolling.
+- Profile name save, successful notification and restoration of the original test name.
+- Password disclosure only; no password entered or changed.
+- Workspace member list and add-member dialog opening/cancellation.
+- Plugin text search, category filtering, synthetic Blockchain.com disable/re-enable, details and configuration dialog cancellation.
+- Addons empty state and manifest install form opening/cancellation.
+- Light/dark theme selection and desktop/tablet/mobile layouts.
 
-No real addon endpoint, API credentials or password change was submitted. Browser logs contain pre-existing graph logo-load failures for the synthetic domain; no settings-related exception was observed.
+No real provider credentials, external addon endpoint, container tool or security-sensitive account action was submitted. Existing graph logo-load failures for the synthetic domain appear in browser logs; no settings-related exception was observed.
 
-Validation: 110 Node tests and 805 unit tests passed (915 total); typecheck passed; production Docker build passed; full lint has zero errors and 285 existing warnings. The final keyboard change also passes targeted lint. Preview database and Docker resources are isolated from both existing installations.
+## Automated validation
 
-## Implementation checklist
+- Typecheck passed.
+- 110 Node tests and 805 Vitest tests passed (915 total, 83 Vitest files).
+- Full lint: zero errors, 284 existing warnings. Targeted lint after final copy/theme changes also passed.
+- Production build, including the final shared-control polish and type validation, passed. The isolated preview was refreshed successfully.
+- Git whitespace validation passed.
 
-- [x] Shared settings window and complete existing sections
-- [x] Primary interactions and responsive layouts checked in browser
-- [x] Full-view and focused reference comparisons inspected after fixes
-- [x] Keyboard isolation and lifecycle regression coverage
-- [x] Production build, typecheck, tests and lint completed
-- [x] Preview left running for review
+Preview Docker resources and database are isolated. Both existing installations are untouched. The implementation remains on `codex/settings-window`; no publication or merge is part of this iteration.
 
-## Follow-up polish
+## Final checklist
 
-No blocking design issues remain. Domain-logo loading is an existing graph behavior outside this redesign. The preview intentionally has no live agent provider or external addon service attached.
+- [x] Rebuild all inner settings screens and extension details
+- [x] Preserve approved navigation and outer dialog
+- [x] Verify primary interactions in browser
+- [x] Check responsive and light-theme layouts
+- [x] Compare source and implementation together
+- [x] Capture and compare final action-surface polish
+- [x] Finish final production preview refresh
+
+No actionable P0/P1/P2 findings remain in the reviewed scope. The preview is running and its browser tab is retained for the user.
+
+## Follow-up polish and limits
+
+No live AI-provider or external-addon integration was exercised in this design review. Backend validation, authorization and execution logic were preserved. Existing synthetic-domain logo loading is outside this redesign.

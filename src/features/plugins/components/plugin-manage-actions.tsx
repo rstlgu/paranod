@@ -2,14 +2,12 @@
 
 import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import {
-  IconSettings,
-  IconTrash
-} from '@tabler/icons-react';
+import { IconSettings, IconTrash } from '@tabler/icons-react';
 import { toast } from 'sonner';
 
 import type { ConfigField } from '@/features/plugins/types';
 import { PluginConfigSheet } from '@/features/plugins/components/plugin-config-sheet';
+import { settingsStyles as ui } from '@/features/settings/settings-fields';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 
@@ -184,7 +182,7 @@ export function PluginManageActions(props: PluginManageActionsProps) {
               size='sm'
               onClick={openConfig}
               disabled={!canEdit}
-              className='gap-2'
+              className={ui.action}
             >
               <IconSettings className='h-4 w-4' />
               Settings
@@ -196,7 +194,7 @@ export function PluginManageActions(props: PluginManageActionsProps) {
               size='sm'
               onClick={uninstallPlugin}
               disabled={!canEdit || isUninstalling}
-              className='gap-2 border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700 dark:border-red-900/30 dark:text-red-400 dark:hover:bg-red-900/10'
+              className={ui.action}
             >
               <IconTrash className='h-4 w-4' />
               Uninstall
@@ -207,7 +205,7 @@ export function PluginManageActions(props: PluginManageActionsProps) {
               checked={enabled}
               onCheckedChange={togglePlugin}
               disabled={!canEdit || isToggling}
-              className='scale-125'
+              aria-label={`Enable ${pluginName}`}
             />
           </div>
         </div>

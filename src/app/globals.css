@@ -797,3 +797,39 @@
   animation: case-note-drop-caret-blink 0.75s steps(1, end) infinite;
   box-shadow: 0 0 0 1px var(--background);
 }
+
+/* Shared appearance for secondary settings dialogs, rendered through a portal. */
+.settings-subdialog {
+  font-family: var(--font-geist), system-ui, sans-serif;
+  border-radius: 12px;
+  background: var(--background);
+}
+.dark .settings-subdialog {
+  background: #202020;
+  border-color: #353535;
+}
+.settings-subdialog [data-slot='dialog-title'] {
+  font-size: 16px;
+  font-weight: 500;
+}
+.settings-subdialog [data-slot='dialog-description'] {
+  font-size: 14px;
+  line-height: 1.6;
+}
+.settings-subdialog [data-slot='input'],
+.settings-subdialog [data-slot='select-trigger'] {
+  background: color-mix(in srgb, var(--foreground) 5%, transparent);
+  border-color: transparent;
+  box-shadow: none;
+  border-radius: 7px;
+}
+.settings-subdialog [data-slot='dialog-footer'] [data-slot='button'] {
+  background: color-mix(in srgb, var(--foreground) 9%, transparent);
+  color: var(--foreground);
+  border: 0;
+  box-shadow: none;
+  border-radius: 7px;
+}
+.settings-subdialog [data-slot='dialog-footer'] [data-slot='button']:hover {
+  background: color-mix(in srgb, var(--foreground) 14%, transparent);
+}

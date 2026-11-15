@@ -1,19 +1,16 @@
 'use client';
 
 import { useState } from 'react';
-import {
-  IconCheck,
-  IconEye,
-  IconEyeOff,
-  IconLock,
-  IconSettings
-} from '@tabler/icons-react';
+import { IconEye, IconEyeOff } from '@tabler/icons-react';
 
 import type { ConfigField } from '@/features/plugins/types';
 import { SECRET_PLACEHOLDER } from '@/features/plugins/config-constants';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import {
+  SettingsRow,
+  settingsStyles as ui
+} from '@/features/settings/settings-fields';
 import {
   Select,
   SelectContent,
@@ -74,12 +71,11 @@ export function PluginConfigSheet({
       }}
     >
       <DialogContent
-        className='flex max-h-[calc(100dvh-64px)] w-full flex-col gap-0 overflow-hidden p-0 sm:max-w-[520px]'
+        className='settings-subdialog flex max-h-[calc(100dvh-64px)] w-full flex-col gap-0 overflow-hidden p-0 sm:max-w-[680px]'
         style={{ fontFamily: 'var(--font-geist), system-ui, sans-serif' }}
       >
         <DialogHeader className='shrink-0 border-b px-5 pt-5 pr-12 pb-4'>
           <DialogTitle className='flex items-center gap-2 text-base'>
-            <IconSettings className='h-5 w-5' />
             {title}
           </DialogTitle>
           <DialogDescription>{description}</DialogDescription>
@@ -95,23 +91,12 @@ export function PluginConfigSheet({
 
             {Object.entries(configSchema).map(([key, field]) => {
               return (
-                <div key={key} className='flex flex-col gap-2'>
-                  <Label htmlFor={key} className='flex items-center gap-2'>
-                    {field.label}
-                    {field.required ? (
-                      <span className='text-destructive'>*</span>
-                    ) : null}
-                    {field.secret ? (
-                      <IconLock className='text-muted-foreground h-3 w-3' />
-                    ) : null}
-                  </Label>
-
-                  {field.description ? (
-                    <p className='text-muted-foreground text-xs'>
-                      {field.description}
-                    </p>
-                  ) : null}
-
+                <SettingsRow
+                  key={key}
+                  htmlFor={key}
+                  label={`${field.label}${field.required ? ' *' : ''}`}
+                  description={field.description}
+                >
                   {field.type === 'select' && field.options ? (
                     <Select
                       value={
@@ -121,7 +106,7 @@ export function PluginConfigSheet({
                       }
                       onValueChange={(nextValue) => updateField(key, nextValue)}
                     >
-                      <SelectTrigger className='w-full'>
+                      <SelectTrigger id={key} className='w-full'>
                         <SelectValue placeholder={`Select ${field.label}`} />
                       </SelectTrigger>
                       <SelectContent className='w-[var(--radix-select-trigger-width)]'>
@@ -134,6 +119,7 @@ export function PluginConfigSheet({
                     </Select>
                   ) : field.type === 'boolean' ? (
                     <Switch
+                      id={key}
                       checked={Boolean(value[key] ?? field.default)}
                       onCheckedChange={(checked) => updateField(key, checked)}
                     />
@@ -161,7 +147,7 @@ export function PluginConfigSheet({
                       }
                     />
                   ) : (
-                    <div className='relative'>
+                    <div className='relative min-w-0'>
                       <Input
                         id={key}
                         type={
@@ -183,6 +169,11 @@ export function PluginConfigSheet({
                       {field.secret ? (
                         <Button
                           type='button'
+                          aria-label={
+                            showSecrets[key]
+                              ? `Hide ${field.label}`
+                              : `Show ${field.label}`
+                          }
                           variant='ghost'
                           size='icon'
                           className='absolute top-1/2 right-1 h-7 w-7 -translate-y-1/2'
@@ -209,22 +200,21 @@ export function PluginConfigSheet({
                       ) : null}
                     </div>
                   )}
-                </div>
+                </SettingsRow>
               );
             })}
           </div>
         </div>
 
-        <DialogFooter className='bg-background shrink-0 flex-row border-t px-4 py-3'>
+        <DialogFooter className='shrink-0 flex-row justify-end border-t px-5 py-4'>
           <Button
             variant='outline'
             onClick={() => onOpenChange(false)}
-            className='flex-1'
+            className={ui.action}
           >
             Cancel
           </Button>
-          <Button onClick={onSave} disabled={isSaving} className='flex-1'>
-            <IconCheck className='mr-2 h-4 w-4' />
+          <Button onClick={onSave} disabled={isSaving} className={ui.action}>
             {saveLabel}
           </Button>
         </DialogFooter>

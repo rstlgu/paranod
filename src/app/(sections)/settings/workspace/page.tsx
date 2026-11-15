@@ -1,15 +1,7 @@
 'use client';
 
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle
-} from '@/components/ui/card';
 import {
   Dialog,
   DialogContent,
@@ -28,21 +20,16 @@ import {
   SelectValue
 } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useUser } from '@/lib/auth-client';
-import {
-  IconBuilding,
-  IconCrown,
-  IconShieldCheck,
-  IconTrash,
-  IconUser,
-  IconUserPlus,
-  IconUsers
-} from '@tabler/icons-react';
+import { IconTrash, IconUser, IconShieldCheck } from '@tabler/icons-react';
 import { useCallback, useEffect, useState } from 'react';
 import { toast } from 'sonner';
 
-import { SettingsPageHeader } from '@/features/settings/settings-page-header';
+import {
+  SettingsSection,
+  SettingsRow,
+  settingsStyles as ui
+} from '@/features/settings/settings-fields';
 
 interface Workspace {
   id: string;
@@ -266,292 +253,165 @@ export default function WorkspaceSettingsPage() {
   const isAdmin = selectedWorkspace?.role === 'admin';
 
   return (
-    <div className='w-full space-y-8'>
-      <SettingsPageHeader
-        eyebrow='Organization settings'
-        title='Workspace & members'
-        description='Manage access and members for this installation.'
-      />
-
-      {workspaceError && (
-        <div
-          role='alert'
-          className='border-destructive/40 bg-destructive/5 flex items-center justify-between gap-4 rounded-xl border px-4 py-3'
-        >
-          <p className='text-sm'>{workspaceError}</p>
-          <Button
-            type='button'
-            variant='outline'
-            size='sm'
-            onClick={() => fetchWorkspaces()}
-          >
-            Retry
-          </Button>
-        </div>
-      )}
-
-      {/* Mostra banner se non ha workspace */}
-      {!loading && workspaces.length === 0 && (
-        <Card className='border-primary/30 bg-primary/5 shadow-none'>
-          <CardContent className='flex items-start gap-4 p-6'>
-            <IconShieldCheck className='text-primary mt-1 h-6 w-6 flex-shrink-0' />
-            <div className='flex-1'>
-              <h3 className='mb-1 font-semibold'>Workspace Required</h3>
-              <p className='text-muted-foreground text-sm'>
-                {
-                  'Your Workspace is being initialized. Refresh this page in a moment.'
+    <div>
+      <SettingsSection title='Workspace'>
+        {workspaceError && (
+          <p role='alert' className={ui.notice}>
+            {workspaceError}{' '}
+            <Button className={ui.action} onClick={() => fetchWorkspaces()}>
+              Retry
+            </Button>
+          </p>
+        )}
+        {loading ? (
+          <Skeleton className='my-4 h-12 w-full' />
+        ) : workspaces.length === 0 ? (
+          <p className={ui.notice}>
+            Your workspace is being initialized. Refresh this page in a moment.
+          </p>
+        ) : (
+          <>
+            <SettingsRow
+              label='Workspace'
+              description='Select a workspace to manage its members.'
+            >
+              <Select
+                value={selectedWorkspace?.id}
+                onValueChange={(id) =>
+                  setSelectedWorkspace(
+                    workspaces.find((w) => w.id === id) ?? null
+                  )
                 }
-              </p>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {loading ? (
-        <div className='grid gap-6 lg:grid-cols-[minmax(260px,320px)_minmax(0,1fr)]'>
-          <Card className='border-border/70 shadow-none'>
-            <CardHeader>
-              <Skeleton className='h-6 w-3/4' />
-            </CardHeader>
-            <CardContent>
-              <Skeleton className='h-24 w-full' />
-            </CardContent>
-          </Card>
-        </div>
-      ) : workspaces.length === 0 ? (
-        <Card className='border-border/70 shadow-none'>
-          <CardContent className='flex min-h-[300px] flex-col items-center justify-center p-8 text-center'>
-            <IconBuilding className='text-muted-foreground mb-4 h-12 w-12' />
-            <h3 className='mb-2 text-lg font-semibold'>
-              Workspace unavailable
-            </h3>
-            <p className='text-muted-foreground mb-4 max-w-sm'>
-              Your Workspace is created automatically during initial setup.
+              >
+                <SelectTrigger aria-label='Workspace'>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {workspaces.map((w) => (
+                    <SelectItem key={w.id} value={w.id}>
+                      {w.name}
+                      {w.id === activeWorkspaceId ? ' · Active' : ''}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </SettingsRow>
+            {selectedWorkspace?.description && (
+              <SettingsRow label='Description'>
+                <span className={ui.value}>
+                  {selectedWorkspace.description}
+                </span>
+              </SettingsRow>
+            )}
+            <SettingsRow label='Your role'>
+              <span className='capitalize'>{selectedWorkspace?.role}</span>
+            </SettingsRow>
+          </>
+        )}
+      </SettingsSection>
+      {selectedWorkspace && (
+        <SettingsSection
+          title='Members'
+          description='Manage who can access this workspace.'
+          action={
+            isAdmin && (
+              <Button
+                className={ui.action}
+                onClick={() => setUserDialogOpen(true)}
+              >
+                Add member
+              </Button>
+            )
+          }
+        >
+          {membersError && (
+            <p role='alert' className={ui.notice}>
+              {membersError}{' '}
+              <Button
+                className={ui.action}
+                onClick={() => setMembersReloadKey((k) => k + 1)}
+              >
+                Retry
+              </Button>
             </p>
-          </CardContent>
-        </Card>
-      ) : (
-        <div className='grid grid-cols-1 items-start gap-6'>
-          {/* Lista workspace */}
-          <Card className='border-border/70 shadow-none'>
-            <CardHeader className='border-border/60 border-b'>
-              <CardTitle className='text-base'>Your Workspace</CardTitle>
-              <CardDescription>Shared OSS workspace</CardDescription>
-            </CardHeader>
-            <CardContent className='space-y-2'>
-              {workspaces.map((workspace) => (
-                <button
-                  type='button'
-                  key={workspace.id}
-                  className={`grid w-full grid-cols-[auto_minmax(0,1fr)] items-center gap-3 rounded-lg border p-3 text-left transition-colors ${
-                    selectedWorkspace?.id === workspace.id
-                      ? 'border-primary/40 bg-primary/[0.06]'
-                      : 'bg-muted/25 hover:border-border hover:bg-muted/50 border-transparent'
-                  }`}
-                  onClick={() => setSelectedWorkspace(workspace)}
-                >
-                  <Avatar className='h-9 w-9'>
-                    <AvatarFallback className='bg-primary/10 text-primary'>
-                      {workspace.name.slice(0, 2).toUpperCase()}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className='min-w-0 space-y-2'>
-                    <div className='min-w-0'>
-                      <p className='truncate text-sm font-medium'>
-                        {workspace.name}
-                      </p>
-                      <p className='text-muted-foreground text-xs'>
-                        {workspace.memberCount} member
-                        {workspace.memberCount !== 1 && 's'}
-                      </p>
-                    </div>
-                    <div className='flex flex-wrap items-center gap-1.5'>
-                      {activeWorkspaceId === workspace.id && (
-                        <Badge variant='default' className='text-xs'>
-                          Active
-                        </Badge>
-                      )}
-                      <Badge
-                        variant={
-                          workspace.role === 'admin' ? 'outline' : 'secondary'
-                        }
-                        className='text-xs'
-                      >
-                        {workspace.role === 'admin' ? (
-                          <IconCrown className='mr-1 h-3 w-3' />
-                        ) : (
-                          <IconUser className='mr-1 h-3 w-3' />
-                        )}
-                        {workspace.role}
-                      </Badge>
-                    </div>
-                  </div>
-                </button>
-              ))}
-            </CardContent>
-          </Card>
-
-          {/* Dettagli workspace */}
-          {selectedWorkspace && (
-            <Card className='border-border/70 min-w-0 shadow-none'>
-              <CardHeader className='border-border/60 border-b'>
-                <div className='flex items-start justify-between'>
-                  <div>
-                    <CardTitle>{selectedWorkspace.name}</CardTitle>
-                    <CardDescription>
-                      {selectedWorkspace.description || 'No description'}
-                    </CardDescription>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <Tabs defaultValue='members'>
-                  <TabsList className='mb-5 w-full justify-start sm:w-auto'>
-                    <TabsTrigger value='members' className='gap-2'>
-                      <IconUsers className='h-4 w-4' />
-                      Members ({members.length})
-                    </TabsTrigger>
-                  </TabsList>
-
-                  <TabsContent value='members' className='space-y-4'>
-                    {membersError && (
-                      <div role='alert' className='rounded-md border px-4 py-3'>
-                        <p className='text-sm'>{membersError}</p>
-                        <p className='text-muted-foreground mt-1 text-xs'>
-                          Check the connection and try again.
-                        </p>
-                        <Button
-                          type='button'
-                          variant='outline'
-                          size='sm'
-                          className='mt-3'
-                          onClick={() =>
-                            setMembersReloadKey((current) => current + 1)
-                          }
-                        >
-                          Retry
-                        </Button>
-                      </div>
-                    )}
-                    {isAdmin && (
-                      <Button
-                        variant='outline'
-                        onClick={() => setUserDialogOpen(true)}
-                      >
-                        <IconUserPlus className='mr-2 h-4 w-4' />
-                        Create User
-                      </Button>
-                    )}
-
-                    {loadingMembers ? (
-                      <div className='space-y-2'>
-                        {[1, 2].map((i) => (
-                          <Skeleton key={i} className='h-14 w-full' />
-                        ))}
-                      </div>
-                    ) : (
-                      <div className='space-y-2'>
-                        {members.map((member) => {
-                          const isCurrentUser = member.userId === user?.id;
-                          return (
-                            <div
-                              key={member.id}
-                              className='border-border/70 flex flex-col gap-3 rounded-lg border p-3 sm:flex-row sm:items-center sm:justify-between'
-                            >
-                              <div className='flex min-w-0 items-center gap-3'>
-                                <Avatar className='h-9 w-9'>
-                                  {member.user?.image && (
-                                    <AvatarImage
-                                      src={member.user.image}
-                                      alt={member.user.name}
-                                    />
-                                  )}
-                                  <AvatarFallback>
-                                    {(member.user?.name || member.userId)
-                                      .slice(0, 2)
-                                      .toUpperCase()}
-                                  </AvatarFallback>
-                                </Avatar>
-                                <div className='min-w-0'>
-                                  <p className='truncate text-sm font-medium'>
-                                    {member.user?.name ||
-                                      (isCurrentUser
-                                        ? 'You'
-                                        : `User ${member.userId.slice(0, 8)}`)}
-                                  </p>
-                                  <p className='text-muted-foreground text-xs'>
-                                    {isCurrentUser ? 'You' : member.user?.email}
-                                    · Joined
-                                    {new Date(
-                                      member.createdAt
-                                    ).toLocaleDateString()}
-                                  </p>
-                                </div>
-                              </div>
-                              <div className='flex shrink-0 items-center gap-2 self-end sm:self-auto'>
-                                {isAdmin && !isCurrentUser ? (
-                                  <Select
-                                    value={member.role}
-                                    onValueChange={(v) =>
-                                      handleChangeRole(
-                                        member.id,
-                                        v as 'admin' | 'user'
-                                      )
-                                    }
-                                  >
-                                    <SelectTrigger className='w-24'>
-                                      <SelectValue />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                      <SelectItem value='user'>User</SelectItem>
-                                      <SelectItem value='admin'>
-                                        Admin
-                                      </SelectItem>
-                                    </SelectContent>
-                                  </Select>
-                                ) : (
-                                  <Badge
-                                    variant={
-                                      member.role === 'admin'
-                                        ? 'default'
-                                        : 'secondary'
-                                    }
-                                  >
-                                    {member.role}
-                                  </Badge>
-                                )}
-                                {isAdmin && !isCurrentUser && (
-                                  <Button
-                                    variant='ghost'
-                                    size='icon'
-                                    onClick={() =>
-                                      handleRemoveMember(member.id)
-                                    }
-                                  >
-                                    <IconTrash className='text-destructive h-4 w-4' />
-                                    <span className='sr-only'>
-                                      Remove member
-                                    </span>
-                                  </Button>
-                                )}
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    )}
-                  </TabsContent>
-                </Tabs>
-              </CardContent>
-            </Card>
           )}
-        </div>
+          {loadingMembers ? (
+            <Skeleton className='my-4 h-12 w-full' />
+          ) : (
+            members.map((member) => {
+              const isCurrentUser = member.userId === user?.id;
+              return (
+                <SettingsRow
+                  key={member.id}
+                  label={
+                    <span className='flex items-center gap-3'>
+                      <Avatar className='size-8'>
+                        {member.user?.image && (
+                          <AvatarImage src={member.user.image} alt='' />
+                        )}
+                        <AvatarFallback>
+                          {(member.user?.name || member.userId)
+                            .slice(0, 2)
+                            .toUpperCase()}
+                        </AvatarFallback>
+                      </Avatar>
+                      <span>
+                        {member.user?.name ||
+                          (isCurrentUser
+                            ? 'You'
+                            : `User ${member.userId.slice(0, 8)}`)}
+                        {isCurrentUser && (
+                          <span className='text-muted-foreground ml-2 text-xs'>
+                            (you)
+                          </span>
+                        )}
+                      </span>
+                    </span>
+                  }
+                  description={member.user?.email}
+                >
+                  {isAdmin && !isCurrentUser ? (
+                    <Select
+                      value={member.role}
+                      onValueChange={(v) =>
+                        handleChangeRole(member.id, v as 'admin' | 'user')
+                      }
+                    >
+                      <SelectTrigger
+                        aria-label={`Role for ${member.user?.name || member.userId}`}
+                      >
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value='user'>User</SelectItem>
+                        <SelectItem value='admin'>Admin</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  ) : (
+                    <span className='text-muted-foreground capitalize'>
+                      {member.role}
+                    </span>
+                  )}
+                  {isAdmin && !isCurrentUser && (
+                    <Button
+                      variant='ghost'
+                      size='icon'
+                      aria-label={`Remove ${member.user?.name || 'member'}`}
+                      onClick={() => handleRemoveMember(member.id)}
+                    >
+                      <IconTrash className='size-4' />
+                    </Button>
+                  )}
+                </SettingsRow>
+              );
+            })
+          )}
+        </SettingsSection>
       )}
-
       <Dialog open={userDialogOpen} onOpenChange={setUserDialogOpen}>
-        <DialogContent>
+        <DialogContent className='settings-subdialog'>
           <DialogHeader>
-            <DialogTitle>Create User</DialogTitle>
+            <DialogTitle>Add member</DialogTitle>
             <DialogDescription>
               {`Create login credentials for ${selectedWorkspace?.name}.`}
             </DialogDescription>
@@ -613,7 +473,11 @@ export default function WorkspaceSettingsPage() {
             <Button variant='outline' onClick={() => setUserDialogOpen(false)}>
               Cancel
             </Button>
-            <Button onClick={handleCreateUser} disabled={isSubmitting}>
+            <Button
+              className={ui.action}
+              onClick={handleCreateUser}
+              disabled={isSubmitting}
+            >
               {isSubmitting ? 'Creating user...' : 'Create User'}
             </Button>
           </DialogFooter>

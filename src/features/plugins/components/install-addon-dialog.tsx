@@ -140,18 +140,17 @@ export function InstallAddonDialog({
       }}
     >
       <DialogContent
-        className='sm:max-w-[600px]'
+        className='settings-subdialog sm:max-w-[600px]'
         style={{ fontFamily: 'var(--font-geist), system-ui, sans-serif' }}
       >
         {step === 'url' && (
           <>
             <DialogHeader>
               <DialogTitle className='flex items-center gap-2'>
-                <IconPuzzle className='h-5 w-5' />
                 Install addon
               </DialogTitle>
               <DialogDescription>
-                Insert the `manifest.json` URL.
+                Connect an external tool using its manifest URL.
               </DialogDescription>
             </DialogHeader>
 
@@ -163,7 +162,7 @@ export function InstallAddonDialog({
           <>
             <div className='space-y-4 py-4'>
               <div className='space-y-2'>
-                <Label htmlFor='manifest-url'>URL manifest</Label>
+                <Label htmlFor='manifest-url'>Manifest URL</Label>
                 <Input
                   id='manifest-url'
                   placeholder='https://cdn.example.com/plugin/manifest.json'

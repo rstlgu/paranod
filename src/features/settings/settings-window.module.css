@@ -143,44 +143,32 @@
   min-width: 0;
   overflow-y: auto;
   overscroll-behavior: contain;
-  padding: 26px 30px 48px;
+  padding: 24px 24px 48px;
   scrollbar-gutter: stable;
 }
-.content :global([data-slot='card']) {
-  border: 0;
-  border-bottom: 1px solid var(--border);
-  border-radius: 0;
-  background: transparent;
+/* Controls share the same quiet surface as the settings rows. */
+.content :global([data-slot='input']),
+.content :global([data-slot='textarea']),
+.content :global([data-slot='select-trigger']) {
+  background: color-mix(in srgb, var(--foreground) 5%, transparent);
+  border: 1px solid transparent;
+  border-radius: 7px;
   box-shadow: none;
-  padding: 0 0 24px;
-  gap: 18px;
+  font-size: 14px;
 }
-.content :global([data-slot='card-header']),
-.content :global([data-slot='card-content']),
-.content :global([data-slot='card-footer']) {
-  padding-left: 0;
-  padding-right: 0;
-  background: transparent;
+.content :global([data-slot='input']):focus-visible,
+.content :global([data-slot='textarea']):focus-visible {
+  border-color: var(--ring);
 }
-.content :global([data-slot='card-header']) {
-  border-bottom: 0;
-  padding-top: 0;
-  padding-bottom: 0;
+.content :global([data-slot='switch'][data-state='checked']) {
+  background: var(--foreground);
 }
-.content :global([data-slot='card-title']) {
-  font-size: 15px;
-  font-weight: 500;
-}
-.content :global([data-slot='card-description']) {
-  line-height: 1.6;
-  font-size: 13px;
+.content :global([data-slot='switch-thumb'][data-state='checked']) {
+  background: var(--background);
 }
 .content :global(h1) {
-  font-size: 19px;
+  font-size: 17px;
   font-weight: 500;
-}
-.content :global([data-slot='input']) {
-  box-shadow: none;
 }
 @keyframes settings-fade {
   from {
