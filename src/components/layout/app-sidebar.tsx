@@ -23,7 +23,6 @@ import { getVisibleNavItems } from '@/constants/data';
 import { useMediaQuery } from '@/hooks/use-media-query';
 import {
   CaretRightIcon as IconChevronRight,
-  XIcon as IconX,
   ArrowUpRightIcon as IconArrowUpRight,
   ArrowsSplitIcon as IconArrowsSplit
 } from '@/components/icons';
@@ -32,7 +31,6 @@ import { usePathname } from 'next/navigation';
 import * as React from 'react';
 import { Icons } from '../icons';
 import { WorkspaceSwitcher } from '../workspace-switcher';
-import { Button } from '@/components/ui/button';
 import { UserNav } from './user-nav';
 
 export default function AppSidebar() {
@@ -166,32 +164,6 @@ export default function AppSidebar() {
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
-        <div className='px-2 pt-2 pb-2 group-data-[collapsible=icon]:hidden'>
-          <div className='relative mb-4 rounded-xl border border-zinc-800 bg-zinc-900/50 p-4'>
-            <div className='flex items-center justify-between'>
-              <span className='rounded bg-[#233527] px-2 py-0.5 text-[10px] font-medium text-[#4ade80]'>
-                New
-              </span>
-              <button className='text-zinc-400 transition-colors hover:text-white'>
-                <IconX size={14} />
-              </button>
-            </div>
-            <h4 className='mt-3 text-sm font-semibold text-zinc-100'>
-              Partners affiliate program
-            </h4>
-            <p className='mt-1 text-xs text-zinc-400'>
-              Run your own affiliate program with zero overhead
-            </p>
-            <Button
-              variant='outline'
-              size='sm'
-              className='mt-3 h-8 w-full border-zinc-700 bg-transparent text-xs text-zinc-300 hover:bg-zinc-800 hover:text-white'
-            >
-              Try it out <IconArrowUpRight size={12} className='ml-1' />
-            </Button>
-          </div>
-        </div>
-
         <div className='px-2 pb-3'>
           {/* Collapsed: solo avatar (più piccolo), centrato */}
           <div className='hidden items-center justify-center group-data-[collapsible=icon]:flex'>
