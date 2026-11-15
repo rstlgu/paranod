@@ -139,7 +139,10 @@ export function InstallAddonDialog({
         onOpenChange(nextOpen);
       }}
     >
-      <DialogContent className='sm:max-w-[600px]'>
+      <DialogContent
+        className='sm:max-w-[600px]'
+        style={{ fontFamily: 'var(--font-geist), system-ui, sans-serif' }}
+      >
         {step === 'url' && (
           <>
             <DialogHeader>

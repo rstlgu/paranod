@@ -1,6 +1,11 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { usePathname } from 'next/navigation';
+import {
+  SettingsLayerContext,
+  SettingsReturnContext
+} from '@/features/settings/settings-surface';
 import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar';
 import { SaveStatusProvider } from '@/contexts/save-status-context';
 import { CircleNotchIcon as IconLoader2 } from '@/components/icons';
@@ -45,6 +50,16 @@ function DashboardLoader() {
 }
 
 export function DashboardShell({ children, defaultOpen }: DashboardShellProps) {
+  const pathname = usePathname();
+  const [returnHref, setReturnHref] = useState('/');
+  const [intercepted, setIntercepted] = useState(false);
+  useEffect(() => {
+    if (!/^\/(settings|plugins|profile)(\/|$)/.test(pathname)) {
+      setReturnHref(
+        window.location.pathname + window.location.search + window.location.hash
+      );
+    }
+  }, [pathname]);
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -62,16 +77,20 @@ export function DashboardShell({ children, defaultOpen }: DashboardShellProps) {
   }
 
   return (
-    <SidebarProvider defaultOpen={defaultOpen}>
-      <SaveStatusProvider>
-        <AppSidebar />
-        <SidebarInset className='bg-page flex flex-col overflow-hidden transition-all duration-300'>
-          <Header />
-          {/* page main content */}
-          <AgentDock>{children}</AgentDock>
-          {/* page main content ends */}
-        </SidebarInset>
-      </SaveStatusProvider>
-    </SidebarProvider>
+    <SettingsLayerContext.Provider value={{ intercepted, setIntercepted }}>
+      <SettingsReturnContext.Provider value={returnHref}>
+        <SidebarProvider defaultOpen={defaultOpen}>
+          <SaveStatusProvider>
+            <AppSidebar />
+            <SidebarInset className='bg-page flex flex-col overflow-hidden transition-all duration-300'>
+              <Header />
+              {/* page main content */}
+              <AgentDock>{children}</AgentDock>
+              {/* page main content ends */}
+            </SidebarInset>
+          </SaveStatusProvider>
+        </SidebarProvider>
+      </SettingsReturnContext.Provider>
+    </SettingsLayerContext.Provider>
   );
 }

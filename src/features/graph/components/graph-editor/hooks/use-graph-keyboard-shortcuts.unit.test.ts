@@ -273,6 +273,29 @@ describe('graph keyboard shortcuts during an agent lock', () => {
     }
   });
 
+  it('never changes the background graph from a focused dialog control', async () => {
+    const args = argsFor(() => true);
+    useGraphKeyboardShortcuts(args);
+    const target = {
+      tagName: 'BUTTON',
+      isContentEditable: false,
+      closest: vi.fn(() => ({}))
+    };
+    for (const key of ['b', 'l', 'd', 'j', 'c', 'z', 'y']) {
+      const event = await press(key, { ctrlKey: true, target });
+      expect(event.preventDefault).not.toHaveBeenCalled();
+    }
+    for (const key of ['m', 'u', 'Delete', 'Backspace']) {
+      await press(key, { target });
+    }
+    expect(target.closest).toHaveBeenCalledWith(
+      '[role="dialog"], [role="alertdialog"]'
+    );
+    for (const callback of Object.values(args).filter(vi.isMockFunction)) {
+      expect(callback).not.toHaveBeenCalled();
+    }
+  });
+
   it('preserves native copy without selected nodes and does not intercept paste', async () => {
     const args = argsFor(() => false);
     args.nodes = args.nodes.map((node) => ({ ...node, selected: false }));

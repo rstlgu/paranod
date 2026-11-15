@@ -22,13 +22,13 @@ import {
   SelectValue
 } from '@/components/ui/select';
 import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetFooter,
-  SheetHeader,
-  SheetTitle
-} from '@/components/ui/sheet';
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle
+} from '@/components/ui/dialog';
 import { Switch } from '@/components/ui/switch';
 
 interface PluginConfigSheetProps {
@@ -66,29 +66,31 @@ export function PluginConfigSheet({
   }
 
   return (
-    <Sheet
+    <Dialog
       open={open}
       onOpenChange={(nextOpen) => {
         if (!nextOpen) setShowSecrets({});
         onOpenChange(nextOpen);
       }}
     >
-      <SheetContent
-        side='right'
-        className='flex h-full w-[420px] flex-col gap-0 p-0 sm:w-[520px] sm:max-w-none'
+      <DialogContent
+        className='flex max-h-[calc(100dvh-64px)] w-full flex-col gap-0 overflow-hidden p-0 sm:max-w-[520px]'
+        style={{ fontFamily: 'var(--font-geist), system-ui, sans-serif' }}
       >
-        <SheetHeader className='shrink-0 border-b px-4 pt-4 pb-3'>
-          <SheetTitle className='flex items-center gap-2 text-base'>
+        <DialogHeader className='shrink-0 border-b px-5 pt-5 pr-12 pb-4'>
+          <DialogTitle className='flex items-center gap-2 text-base'>
             <IconSettings className='h-5 w-5' />
             {title}
-          </SheetTitle>
-          <SheetDescription>{description}</SheetDescription>
-        </SheetHeader>
+          </DialogTitle>
+          <DialogDescription>{description}</DialogDescription>
+        </DialogHeader>
 
         <div className='min-h-0 flex-1 overflow-y-auto px-4 py-4'>
           <div className='flex flex-col gap-4'>
             {isMissingRequiredConfig ? (
-              <p className='text-destructive text-xs'>Missing required fields.</p>
+              <p className='text-destructive text-xs'>
+                Missing required fields.
+              </p>
             ) : null}
 
             {Object.entries(configSchema).map(([key, field]) => {
@@ -120,9 +122,7 @@ export function PluginConfigSheet({
                       onValueChange={(nextValue) => updateField(key, nextValue)}
                     >
                       <SelectTrigger className='w-full'>
-                        <SelectValue
-                          placeholder={`Select ${field.label}`}
-                        />
+                        <SelectValue placeholder={`Select ${field.label}`} />
                       </SelectTrigger>
                       <SelectContent className='w-[var(--radix-select-trigger-width)]'>
                         {field.options.map((option) => (
@@ -175,7 +175,9 @@ export function PluginConfigSheet({
                             : `Enter ${field.label}`
                         }
                         value={(value[key] as string) || ''}
-                        onChange={(event) => updateField(key, event.target.value)}
+                        onChange={(event) =>
+                          updateField(key, event.target.value)
+                        }
                       />
 
                       {field.secret ? (
@@ -201,8 +203,8 @@ export function PluginConfigSheet({
 
                       {field.secret && value[key] === SECRET_PLACEHOLDER ? (
                         <p className='text-muted-foreground mt-1 text-[11px]'>
-                          Saved and encrypted. Type a new value to replace it, or
-                          clear the field to remove it.
+                          Saved and encrypted. Type a new value to replace it,
+                          or clear the field to remove it.
                         </p>
                       ) : null}
                     </div>
@@ -213,7 +215,7 @@ export function PluginConfigSheet({
           </div>
         </div>
 
-        <SheetFooter className='bg-background shrink-0 flex-row border-t px-4 py-3'>
+        <DialogFooter className='bg-background shrink-0 flex-row border-t px-4 py-3'>
           <Button
             variant='outline'
             onClick={() => onOpenChange(false)}
@@ -225,8 +227,8 @@ export function PluginConfigSheet({
             <IconCheck className='mr-2 h-4 w-4' />
             {saveLabel}
           </Button>
-        </SheetFooter>
-      </SheetContent>
-    </Sheet>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }

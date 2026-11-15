@@ -1,6 +1,11 @@
 'use client';
 
 import { usePathname } from 'next/navigation';
+import { useContext } from 'react';
+import {
+  SettingsReturnContext,
+  underlyingApplicationPath
+} from '@/features/settings/settings-surface';
 import { useShallow } from 'zustand/react/shallow';
 import { useWorkspaceTabsStore } from '@/features/workspace/store/workspace-tabs-store';
 
@@ -12,6 +17,7 @@ export interface ActiveAgentGraph {
 // The agent works on one graph at a time: it exists only in an open graph tab.
 export function useActiveAgentGraph(): ActiveAgentGraph | null {
   const pathname = usePathname();
+  const returnHref = useContext(SettingsReturnContext);
   const tab = useWorkspaceTabsStore(
     useShallow((state) => {
       const active = state.tabs.find((item) => item.id === state.activeTabId);
@@ -20,7 +26,7 @@ export function useActiveAgentGraph(): ActiveAgentGraph | null {
         : null;
     })
   );
-  return pathname === '/' ? tab : null;
+  return underlyingApplicationPath(pathname, returnHref) === '/' ? tab : null;
 }
 
 export function readActiveAgentGraphId(pathname: string | null) {

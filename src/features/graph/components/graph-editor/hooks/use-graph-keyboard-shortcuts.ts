@@ -28,6 +28,7 @@ export function useGraphKeyboardShortcuts<TNode extends { selected?: boolean }>(
       // Ignora se si sta digitando in un input
       const target = e.target as HTMLElement;
       if (
+        target.closest?.('[role="dialog"], [role="alertdialog"]') ||
         target.tagName === 'INPUT' ||
         target.tagName === 'TEXTAREA' ||
         target.isContentEditable

@@ -200,7 +200,7 @@ function AccountContent({
           </p>
         </div>
 
-        <div className='grid items-start gap-6 lg:grid-cols-[minmax(0,1.35fr)_minmax(280px,0.65fr)]'>
+        <div className='grid grid-cols-1 items-start gap-6'>
           <Card className='border-border/70 shadow-none'>
             <CardHeader>
               <div className='flex items-center gap-3'>

@@ -16,7 +16,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu';
-import { Heading } from '@/components/ui/heading';
 import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -57,6 +56,8 @@ import {
 } from '@tabler/icons-react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useRouter } from 'next/navigation';
+import { useQueryState, parseAsStringLiteral } from 'nuqs';
+import { SettingsPageHeader } from '@/features/settings/settings-page-header';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 
@@ -109,7 +110,12 @@ const ADDON_STORE_URL = process.env.NEXT_PUBLIC_ADDON_STORE_URL;
 export default function PluginsPage() {
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
-  const [activeTab, setActiveTab] = useState<'plugins' | 'addons'>('plugins');
+  const [activeTab, setActiveTab] = useQueryState(
+    'tab',
+    parseAsStringLiteral(['plugins', 'addons'] as const)
+      .withDefault('plugins')
+      .withOptions({ shallow: true })
+  );
   const [togglingPlugin, setTogglingPlugin] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<ViewMode>('table');
   const [searchQuery, setSearchQuery] = useState('');
@@ -465,9 +471,12 @@ export default function PluginsPage() {
 
   const openPluginDetail = useCallback(
     (pluginId: string) => {
-      router.push(`/plugins/${pluginId}`);
+      router.push(
+        `/plugins/${encodeURIComponent(pluginId)}${activeTab === 'addons' ? '?tab=addons' : ''}`,
+        { scroll: false }
+      );
     },
-    [router]
+    [router, activeTab]
   );
 
   function toggleExpandedPlugin(pluginId: string) {
@@ -671,17 +680,17 @@ export default function PluginsPage() {
     return (
       <AccordionItem
         value={plugin.id}
-        className='group dark:hover:shadow-primary/5 mb-3 overflow-hidden rounded-[20px] border border-zinc-200/50 bg-white/50 shadow-sm transition-all duration-300 hover:shadow-lg dark:border-zinc-800/50 dark:bg-zinc-900/50'
+        className='group border-border/60 overflow-hidden border-b bg-transparent transition-colors'
       >
         <div
           className='relative flex cursor-pointer items-center'
           onClick={() => openPluginDetail(plugin.id)}
         >
-          <div className='flex-1 py-4 pr-32 pl-5'>
+          <div className='min-w-0 flex-1 py-4 pr-28 pl-0'>
             <div className='flex items-center gap-4'>
               <div
                 className={cn(
-                  'flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl shadow-sm transition-transform duration-300 group-hover:scale-105',
+                  'flex h-10 w-10 shrink-0 items-center justify-center rounded-lg',
                   headerBg
                 )}
               >
@@ -697,7 +706,7 @@ export default function PluginsPage() {
                 <div className='flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1'>
                   <button
                     type='button'
-                    className='min-w-0 flex-1 truncate text-left text-base font-bold tracking-tight'
+                    className='min-w-0 flex-1 truncate text-left text-sm font-medium tracking-tight'
                     onClick={(e) => {
                       e.preventDefault();
                       e.stopPropagation();
@@ -869,9 +878,14 @@ export default function PluginsPage() {
       <div className='w-full space-y-4'>
         <div className='flex items-start justify-between'>
           <div>
-            <Heading
-              title='Plugins & Addons'
-              description='Manage OSINT transformation plugins and addons.'
+            <SettingsPageHeader
+              eyebrow='Extensions'
+              title={activeTab === 'addons' ? 'Addons' : 'Plugins'}
+              description={
+                activeTab === 'addons'
+                  ? 'Connect external tools to your workspace with an addon manifest.'
+                  : 'Choose the tools available in your investigations.'
+              }
             />
             {!isWorkspaceAdmin && (
               <Badge variant='secondary' className='mt-2 gap-1'>
@@ -891,7 +905,7 @@ export default function PluginsPage() {
             }
             className='w-full space-y-6'
           >
-            <div className='flex items-center justify-between gap-4'>
+            <div className='flex flex-wrap items-center justify-between gap-3'>
               <TabsList className='bg-zinc-100 p-1 dark:bg-zinc-800'>
                 <TabsTrigger
                   value='plugins'
@@ -909,7 +923,7 @@ export default function PluginsPage() {
                 </TabsTrigger>
               </TabsList>
 
-              <div className='flex items-center gap-3'>
+              <div className='flex flex-wrap items-center gap-2'>
                 {ADDON_STORE_URL && (
                   <Button asChild variant='outline'>
                     <a
@@ -929,13 +943,13 @@ export default function PluginsPage() {
                   </Button>
                 )}
 
-                <div className='relative w-72'>
+                <div className='relative min-w-40 flex-1 sm:w-52'>
                   <IconSearch className='text-muted-foreground absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2' />
                   <Input
                     placeholder='Search'
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className='focus-visible:ring-primary/20 h-10 rounded-xl border-zinc-200 bg-white pr-9 pl-9 shadow-sm transition-all dark:border-zinc-800 dark:bg-zinc-900/50'
+                    className='border-border h-9 rounded-lg bg-transparent pr-9 pl-9 shadow-none'
                   />
                   {searchQuery && (
                     <Button
@@ -953,7 +967,7 @@ export default function PluginsPage() {
                   <DropdownMenuTrigger asChild>
                     <Button
                       variant='outline'
-                      className='h-10 rounded-xl border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-900/50'
+                      className='border-border h-9 rounded-lg bg-transparent shadow-none'
                       type='button'
                     >
                       {selectedLabel}
@@ -1156,7 +1170,7 @@ function LoadingSkeleton({ viewMode }: { viewMode: ViewMode }) {
               <div className='flex items-center gap-4'>
                 <Skeleton className='h-12 w-12 shrink-0 rounded-2xl' />
                 <div className='min-w-0 space-y-2'>
-                  <div className='flex items-center gap-3'>
+                  <div className='flex flex-wrap items-center gap-2'>
                     <Skeleton className='h-4 w-32' />
                     <Skeleton className='h-5 w-24 rounded-full' />
                   </div>
@@ -1187,7 +1201,7 @@ function LoadingSkeleton({ viewMode }: { viewMode: ViewMode }) {
           className='group hover:border-primary/20 dark:hover:shadow-primary/5 relative overflow-hidden rounded-[24px] border border-zinc-200/50 bg-white/50 shadow-sm transition-all duration-300 dark:border-zinc-800/50 dark:bg-zinc-900/50'
         >
           <div className='p-5'>
-            <div className='flex items-center justify-between gap-4'>
+            <div className='flex flex-wrap items-center justify-between gap-3'>
               <div className='flex items-center gap-4'>
                 <Skeleton className='h-14 w-14 shrink-0 rounded-2xl' />
                 <div className='min-w-0 flex-1 space-y-2'>

@@ -61,7 +61,10 @@ async function countMembershipsOrZero(userId: string): Promise<number> {
   }
 }
 
-export async function AppShellLayout(props: { children: React.ReactNode }) {
+export async function AppShellLayout(props: {
+  children: React.ReactNode;
+  preferences?: React.ReactNode;
+}) {
   const { userId } = await auth();
   if (!userId) redirect('/sign-in');
 
@@ -75,6 +78,7 @@ export async function AppShellLayout(props: { children: React.ReactNode }) {
       <KBar>
         <DashboardShell defaultOpen={defaultOpen}>
           {props.children}
+          {props.preferences}
         </DashboardShell>
       </KBar>
     </RequireWorkspace>

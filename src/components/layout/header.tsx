@@ -5,6 +5,11 @@ import { useGraphPanelTogglesStore } from '@/features/graph/store/graph-panel-to
 import { WorkspaceTabs } from '@/features/workspace/components/workspace-tabs';
 import { cn } from '@/lib/utils';
 import { usePathname } from 'next/navigation';
+import { useContext } from 'react';
+import {
+  SettingsReturnContext,
+  underlyingApplicationPath
+} from '@/features/settings/settings-surface';
 import { Breadcrumbs } from '../breadcrumbs';
 import { Separator } from '../ui/separator';
 import { ModeToggle } from './ThemeToggle/theme-toggle';
@@ -16,7 +21,8 @@ import {
 
 export default function Header() {
   const pathname = usePathname();
-  const isWorkspace = pathname === '/';
+  const returnHref = useContext(SettingsReturnContext);
+  const isWorkspace = underlyingApplicationPath(pathname, returnHref) === '/';
   const panelControls = useGraphPanelTogglesStore((s) => s.controls);
 
   return (

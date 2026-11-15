@@ -105,9 +105,7 @@ export function UserNav({ size = 'sm', variant = 'avatar' }: UserNavProps) {
               <IconBuilding className='mr-2 h-4 w-4' />
               Workspace
             </DropdownMenuItem>
-            <DropdownMenuItem
-              onClick={() => router.push('/settings/self-host')}
-            >
+            <DropdownMenuItem onClick={() => router.push('/settings')}>
               <IconSettings className='mr-2 h-4 w-4' />
               Settings
             </DropdownMenuItem>

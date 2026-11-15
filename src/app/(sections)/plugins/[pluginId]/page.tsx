@@ -217,7 +217,7 @@ export default async function Page(props: PageProps) {
             size='sm'
             className='text-muted-foreground hover:text-foreground shrink-0 pl-0'
           >
-            <Link href='/plugins'>
+            <Link href={isExternalPlugin ? '/plugins?tab=addons' : '/plugins'}>
               <IconArrowLeft className='mr-2 h-4 w-4' />
               Back to Plugins
             </Link>
@@ -229,7 +229,7 @@ export default async function Page(props: PageProps) {
           <div className='flex items-start gap-5'>
             <div
               className={cn(
-                'flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-[24px] border shadow-lg transition-transform hover:scale-105',
+                'flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-xl border shadow-none',
                 headerBg
               )}
             >
@@ -244,7 +244,7 @@ export default async function Page(props: PageProps) {
             <div className='space-y-2'>
               <div>
                 <div className='flex items-center gap-3'>
-                  <h1 className='text-3xl font-bold tracking-tight'>
+                  <h1 className='text-xl font-bold tracking-tight'>
                     {plugin.name}
                   </h1>
                   {needsSetup ? (
@@ -323,7 +323,7 @@ export default async function Page(props: PageProps) {
 
         <Separator className='bg-zinc-200 dark:bg-zinc-800' />
 
-        <div className='grid gap-8 lg:grid-cols-[2fr_1fr]'>
+        <div className='grid grid-cols-1 gap-8'>
           <div className='space-y-8'>
             {/* Description */}
             <section className='space-y-4'>

@@ -12,15 +12,11 @@ export function SettingsPageHeader({
   action?: ReactNode;
 }) {
   return (
-    <header className='border-border/70 flex flex-col gap-5 border-b pb-7 sm:flex-row sm:items-end sm:justify-between'>
+    <header className='flex flex-col gap-4 pb-1 sm:flex-row sm:items-start sm:justify-between'>
       <div className='max-w-2xl'>
-        <p className='text-primary mb-2 text-[11px] font-semibold tracking-[0.18em] uppercase'>
-          {eyebrow}
-        </p>
-        <h1 className='text-2xl font-semibold tracking-tight sm:text-[1.75rem]'>
-          {title}
-        </h1>
-        <p className='text-muted-foreground mt-2 text-sm leading-6'>
+        <p className='sr-only'>{eyebrow}</p>
+        <h1 className='text-[19px] font-medium tracking-tight'>{title}</h1>
+        <p className='text-muted-foreground mt-2 text-[13px] leading-6'>
           {description}
         </p>
       </div>

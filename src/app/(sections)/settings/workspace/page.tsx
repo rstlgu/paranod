@@ -331,9 +331,9 @@ export default function WorkspaceSettingsPage() {
           </CardContent>
         </Card>
       ) : (
-        <div className='grid items-start gap-6 lg:grid-cols-[minmax(260px,300px)_minmax(0,1fr)]'>
+        <div className='grid grid-cols-1 items-start gap-6'>
           {/* Lista workspace */}
-          <Card className='border-border/70 shadow-none lg:sticky lg:top-32'>
+          <Card className='border-border/70 shadow-none'>
             <CardHeader className='border-border/60 border-b'>
               <CardTitle className='text-base'>Your Workspace</CardTitle>
               <CardDescription>Shared OSS workspace</CardDescription>

@@ -8,9 +8,11 @@ export const metadata: Metadata = {
 };
 
 export default async function DashboardLayout({
-  children
+  children,
+  preferences
 }: {
   children: React.ReactNode;
+  preferences: React.ReactNode;
 }) {
-  return await AppShellLayout({ children });
+  return await AppShellLayout({ children, preferences });
 }

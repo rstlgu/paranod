@@ -1,5 +1,4 @@
-import { redirect } from 'next/navigation';
-
-export default function SettingsPage() {
-  redirect('/settings/account');
+import { GeneralSettings } from '@/features/settings/general-settings';
+export default function Page() {
+  return <GeneralSettings />;
 }

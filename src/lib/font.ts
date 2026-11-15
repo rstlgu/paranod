@@ -49,6 +49,7 @@ const fontInter = Inter({
 
 export const fontVariables = cn(
   fontSans.variable,
+  fontGeist.variable,
   fontMono.variable,
   fontInstrument.variable,
   fontNotoMono.variable,
