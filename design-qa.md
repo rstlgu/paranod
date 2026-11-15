@@ -73,3 +73,24 @@ No actionable P0/P1/P2 findings remain in the reviewed scope. The preview is run
 ## Follow-up polish and limits
 
 No live AI-provider or external-addon integration was exercised in this design review. Backend validation, authorization and execution logic were preserved. Existing synthetic-domain logo loading is outside this redesign.
+
+## Compact spacing and transform discovery refinement
+
+The user approved the redesigned content and requested less spacing, removal of excess separators in secondary dialogs, and visible transforms for both plugins and addons. Sidebar gaps and row padding are reduced. Plugin and addon summaries now expand inline through a labelled disclosure control; transforms show their description, input and output, with a separate detail-page link. “Actions” is replaced with “transforms” in extension-facing labels. Configuration header/footer borders and the final field divider are removed; the addon install separator is removed.
+
+Typecheck, full lint (zero errors, 284 existing warnings), all 915 tests and the production build pass. The isolated preview has been updated.
+
+Post-change browser verification:
+
+- Built-in plugin disclosure opens and closes; addon disclosure also works with a disabled synthetic addon fixture containing synchronous and asynchronous transform metadata. No external service was contacted.
+- Enter toggles the disclosure. Activation switches remain independent and keep the transform list open. The tested builtin was restored to its original enabled state.
+- Configure opens above an expanded plugin; cancelling returns with its transform list still open.
+- Addon detail navigation shows the same transforms. No extension-facing action count or “Available actions” heading remains.
+- Plugin configuration and addon installation dialogs have no excess header/footer or final-field separator. Both were opened and cancelled without entering credentials.
+- Desktop 1465 × 911 and mobile 390 × 844 layouts were inspected, including light theme. The mobile dialog's scroll width equals its client width. Theme and temporary viewport override were restored.
+- Sidebar navigation height decreased from 462px to 385px, approximately 17%, without changing its entries. Shared row padding decreased from 18px to 12px per side and section spacing from 40px to 24px.
+- Browser logs contain only the previously observed synthetic-domain logo-load failures; no settings or transform-list exception was found.
+
+Final evidence in the same evidence directory: `plugins-compact.png`, `plugin-transforms-compact.png`, `addon-transforms-compact.png`, `config-compact.png`, `install-addon-compact.png`, `agent-compact.png`, `transforms-mobile-compact.png`, `config-mobile-compact.png`, and `addon-mobile-light-compact.png`.
+
+`compact-comparison.png` places the source reference and final browser states together. `compact-comparison-detail.png` compares equal-size crops of the previously approved catalog and the compact revision. Both were opened and reviewed. Typography, neutral colors and icon quality remain consistent; reduced spacing is intentional following user review. No actionable P0/P1/P2 findings remain. The preview is left open with a plugin's transforms expanded.

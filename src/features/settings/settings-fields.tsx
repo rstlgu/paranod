@@ -32,15 +32,17 @@ export function SettingsRow({
   label,
   description,
   children,
-  htmlFor
+  htmlFor,
+  className
 }: {
   label: ReactNode;
   description?: ReactNode;
   children?: ReactNode;
   htmlFor?: string;
+  className?: string;
 }) {
   return (
-    <div className={styles.row}>
+    <div className={[styles.row, className].filter(Boolean).join(' ')}>
       <div className={styles.copy}>
         {htmlFor ? (
           <label htmlFor={htmlFor}>{label}</label>

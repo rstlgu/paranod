@@ -64,7 +64,7 @@
   flex-shrink: 0;
   display: flex;
   flex-direction: column;
-  padding: 18px 16px;
+  padding: 14px 16px;
   border-right: 1px solid var(--border);
   background: color-mix(in srgb, var(--muted) 22%, var(--background));
   overflow-y: auto;
@@ -81,7 +81,7 @@
   border-radius: 8px;
   background: var(--muted);
   color: var(--muted-foreground);
-  margin-bottom: 22px;
+  margin-bottom: 16px;
 }
 :global(.dark) .search {
   background: #262626;
@@ -100,25 +100,25 @@
 .navigation {
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: 14px;
 }
 .groupLabel {
   color: var(--muted-foreground);
   font-size: 12px;
   font-weight: 400;
   padding: 0 9px;
-  margin-bottom: 9px;
+  margin-bottom: 5px;
 }
 .groupItems {
   display: flex;
   flex-direction: column;
-  gap: 3px;
+  gap: 2px;
 }
 .item {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 9px 10px;
+  padding: 7px 10px;
   border-radius: 7px;
   font-size: 14px;
   color: var(--muted-foreground);

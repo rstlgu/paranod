@@ -10,6 +10,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
+import { PluginCatalogEntry } from '@/features/plugins/components/plugin-catalog-entry';
 import { InstallAddonDialog } from '@/features/plugins/components/install-addon-dialog';
 import { PluginConfigSheet } from '@/features/plugins/components/plugin-config-sheet';
 import { usePlugins } from '@/features/plugins/hooks/use-plugins';
@@ -457,7 +458,7 @@ export default function PluginsPage() {
             Only workspace administrators can change these settings.
           </p>
         )}
-        <div className={`${ui.toolbar} pt-5`}>
+        <div className={`${ui.toolbar} pt-3`}>
           <Input
             aria-label='Search extensions'
             placeholder={
@@ -510,29 +511,14 @@ export default function PluginsPage() {
         groupByCategory(displayed).map(([category, plugins]) => (
           <SettingsSection key={category} title={formatCategoryLabel(category)}>
             {plugins.map((plugin) => (
-              <SettingsRow
+              <PluginCatalogEntry
                 key={plugin.id}
-                label={
-                  <button
-                    className={ui.link}
-                    onClick={() => openPluginDetail(plugin.id)}
-                  >
-                    {plugin.name}
-                  </button>
-                }
-                description={
-                  <>
-                    <span className='line-clamp-2'>{plugin.description}</span>
-                    <span className='mt-1 block text-xs'>
-                      {plugin.transforms.length}{' '}
-                      {plugin.transforms.length === 1 ? 'action' : 'actions'} ·
-                      v{plugin.version}
-                      {needsConfiguration(plugin)
-                        ? ' · Configuration required'
-                        : ''}
-                    </span>
-                  </>
-                }
+                name={plugin.name}
+                description={plugin.description}
+                version={plugin.version}
+                transforms={plugin.transforms}
+                needsConfiguration={needsConfiguration(plugin)}
+                onDetails={() => openPluginDetail(plugin.id)}
               >
                 {hasConfigSchema(plugin) && (
                   <Button
@@ -561,7 +547,7 @@ export default function PluginsPage() {
                   }
                   onCheckedChange={(enabled) => handleToggle(plugin, enabled)}
                 />
-              </SettingsRow>
+              </PluginCatalogEntry>
             ))}
           </SettingsSection>
         ))

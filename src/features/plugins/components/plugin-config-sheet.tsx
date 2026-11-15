@@ -74,15 +74,15 @@ export function PluginConfigSheet({
         className='settings-subdialog flex max-h-[calc(100dvh-64px)] w-full flex-col gap-0 overflow-hidden p-0 sm:max-w-[680px]'
         style={{ fontFamily: 'var(--font-geist), system-ui, sans-serif' }}
       >
-        <DialogHeader className='shrink-0 border-b px-5 pt-5 pr-12 pb-4'>
+        <DialogHeader className='shrink-0 px-5 pt-5 pr-12 pb-2'>
           <DialogTitle className='flex items-center gap-2 text-base'>
             {title}
           </DialogTitle>
           <DialogDescription>{description}</DialogDescription>
         </DialogHeader>
 
-        <div className='min-h-0 flex-1 overflow-y-auto px-4 py-4'>
-          <div className='flex flex-col gap-4'>
+        <div className='min-h-0 flex-1 overflow-y-auto px-5 py-2'>
+          <div className={ui.fields}>
             {isMissingRequiredConfig ? (
               <p className='text-destructive text-xs'>
                 Missing required fields.
@@ -206,7 +206,7 @@ export function PluginConfigSheet({
           </div>
         </div>
 
-        <DialogFooter className='shrink-0 flex-row justify-end border-t px-5 py-4'>
+        <DialogFooter className='shrink-0 flex-row justify-end px-5 pt-2 pb-5'>
           <Button
             variant='outline'
             onClick={() => onOpenChange(false)}

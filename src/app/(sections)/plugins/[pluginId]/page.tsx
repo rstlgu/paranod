@@ -1,7 +1,6 @@
 import {
   SettingsSection,
-  SettingsRow,
-  settingsStyles as ui
+  SettingsRow
 } from '@/features/settings/settings-fields';
 import { auth } from '@/lib/auth-session';
 import { IconArrowLeft } from '@tabler/icons-react';
@@ -10,6 +9,7 @@ import { notFound } from 'next/navigation';
 
 import PageContainer from '@/components/layout/page-container';
 import { parseStoredAddonManifest } from '@/features/plugins/addon-storage';
+import { PluginTransforms } from '@/features/plugins/components/plugin-transforms';
 import { PluginManageActions } from '@/features/plugins/components/plugin-manage-actions';
 import { sanitizeConfigForClient } from '@/features/plugins/config-service';
 import { getPlugin } from '@/features/plugins/registry';
@@ -232,21 +232,8 @@ export default async function Page(props: PageProps) {
           <span className='capitalize'>{plugin.category}</span>
         </SettingsRow>
       </SettingsSection>
-      <SettingsSection title='Available actions'>
-        {plugin.transforms.map((transform) => (
-          <SettingsRow
-            key={transform.id}
-            label={transform.name}
-            description={transform.description}
-          >
-            <span className={ui.value}>
-              {transform.inputType} → {transform.outputTypes.join(', ')}
-            </span>
-          </SettingsRow>
-        ))}
-        {!plugin.transforms.length && (
-          <p className={ui.notice}>No actions declared by this plugin.</p>
-        )}
+      <SettingsSection title='Transforms'>
+        <PluginTransforms transforms={plugin.transforms} />
       </SettingsSection>
     </PageContainer>
   );

@@ -24,7 +24,6 @@ import {
   IconInfoCircle
 } from '@tabler/icons-react';
 import { toast } from 'sonner';
-import { Separator } from '@/components/ui/separator';
 import type { ManifestPreviewResponse } from '@/types/addons';
 
 interface InstallAddonDialogProps {
@@ -153,8 +152,6 @@ export function InstallAddonDialog({
                 Connect an external tool using its manifest URL.
               </DialogDescription>
             </DialogHeader>
-
-            <Separator />
           </>
         )}
 
@@ -259,8 +256,9 @@ export function InstallAddonDialog({
                       <IconInfoCircle className='h-4 w-4' />
                       <AlertDescription>
                         This addon needs a reachable HTTPS address for its
-                        background actions. Ask its provider for an updated
-                        version to use those actions with a local installation.
+                        background transforms. Ask its provider for an updated
+                        version to use those transforms with a local
+                        installation.
                       </AlertDescription>
                     </Alert>
                   )}
